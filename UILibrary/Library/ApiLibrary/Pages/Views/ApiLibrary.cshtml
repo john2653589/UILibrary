@@ -31,11 +31,13 @@
                     <div class="row m-0 p-0">
 
                         <!--Left List Group-->
-                        <button class="col btn btn-primary list-group-item w-100 text-start"
-                                v-bind:class="{ 'bg-black text-white' : CheckActive(Item) }"
-                                v-text="Item.GroupName"
-                                v-on:click="GroupSelect(Item)">
-                        </button>
+                        <div class="col btn btn-primary list-group-item w-100 text-start"
+                             v-bind:class="{ 'bg-black text-white' : CheckActive(Item) }"
+                             v-on:click="GroupSelect(Item)">
+                            <div v-text="Item.GroupDescribe"
+                                 style="white-space:pre-wrap"></div>
+                            <span v-text="Item.GroupName"></span>
+                        </div>
 
                         <!--Left List Down Icon-->
                         <button class="btn btn-primary list-group-item col-2"
@@ -58,7 +60,8 @@
                             <div class="col-10 btn btn-primary list-group-item text-start fw-bold"
                                  v-bind:class="{ 'bg-primary': IsSelectApi(Val, Item) }"
                                  v-on:click="SelectApi(Val, Item)">
-                                <div v-text="Val.Describe"></div>
+                                <div v-text="Val.ApiDescribe"
+                                     style="white-space:pre-wrap"></div>
                                 <span v-text=" Idx + 1 + '. ' +  Val.ApiKey"></span>
                             </div>
                         </div>
@@ -114,9 +117,9 @@
                          v-bind:data-bs-target=" '#Api_' + Item.ApiKey">
 
                         <!--Describe-->
-                        <div v-if="Item.Describe != '' && Item.Describe != null">
+                        <div v-if="Item.ApiDescribe != '' && Item.ApiDescribe != null">
                             <span class="text-secondary fw-bolder"
-                                  v-text="Item.Describe"
+                                  v-text="Item.ApiDescribe"
                                   style="white-space:pre-wrap"></span>
                         </div>
 
@@ -160,7 +163,7 @@
                     <div class="row" style="min-height:130px">
                         <div class="col-12 p-0 m-0">
                             <textarea class="form-control bg-dark text-white h-100"
-                                      v-model="Item.Describe">
+                                      v-model="Item.ApiDescribe">
 
                             </textarea>
                         </div>

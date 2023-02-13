@@ -30,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Library\ApiLibrary\Pages\Views\ApiLibrary.cshtml" />
     <None Include="Library\UILibraryCore\Pages\Layout\_VcLayout.cshtml" />
   </ItemGroup>
 

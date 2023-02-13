@@ -75,25 +75,9 @@ namespace Rugal.MVC.ApiLibrary.Pages.Controllers
 
                         var KeyUrlText = $"{ApiSpaceText}{ApiKey}: '{Api.Url}'";
                         var ApiTotalText = KeyUrlText;
-                        if (!string.IsNullOrWhiteSpace(Api.Describe))
+                        if (!string.IsNullOrWhiteSpace(Api.ApiDescribe))
                         {
-                            var AllDescribe = Api.Describe
-                                .TrimStart('\n', ' ')
-                                .TrimEnd('\n', ' ')
-                                .Split("\n");
-
-                            var FirstDescribeText = $"{ApiSpaceText}/** {AllDescribe.First()}";
-                            var LastDescribe = AllDescribe
-                                .Skip(1)
-                                .Select(Describe => $"{ApiSpaceText} * {Describe}");
-
-                            var LastDescText = "";
-                            if (LastDescribe.Any())
-                                LastDescText = $"\n{string.Join("\n", LastDescribe)}";
-
-                            var TotalDescribeText = $"{FirstDescribeText}{LastDescText} */";
-
-                            var DescribeText = string.Join("\n", AllDescribe);
+                            var TotalDescribeText = GenerateJsApiDescribe(ApiSpaceText, Api.ApiDescribe);
                             ApiTotalText = $"{TotalDescribeText}\n{ApiTotalText}";
                         }
 
@@ -101,6 +85,12 @@ namespace Rugal.MVC.ApiLibrary.Pages.Controllers
                     });
                     var ApiText = string.Join(",\r\n", AllApi);
                     var GroupText = $"{GroupSpaceText}{Group.GroupName}: {{\r\n{ApiText}\r\n    }}";
+
+                    if (!string.IsNullOrWhiteSpace(Group.GroupDescribe))
+                    {
+                        var GroupDescribeText = GenerateJsApiDescribe(GroupSpaceText, Group.GroupDescribe);
+                        GroupText = $"{GroupDescribeText}\n{GroupText}";
+                    }
                     return GroupText;
                 });
 
@@ -109,6 +99,31 @@ namespace Rugal.MVC.ApiLibrary.Pages.Controllers
 
             System.IO.File.WriteAllText(ApiJsPath, JsText);
         }
+        internal string GenerateJsApiDescribe(string SpaceText, string Describe)
+        {
+            var DescribeText = "";
+            if (!string.IsNullOrWhiteSpace(Describe))
+            {
+                var AllDescribe = Describe
+                    .TrimStart('\n', ' ')
+                    .TrimEnd('\n', ' ')
+                    .Split("\n")
+                    .Select(Item => Item.TrimStart(' ').TrimEnd(' '));
+
+                var FirstDescribeText = $"{SpaceText}/** {AllDescribe.First()}";
+                var LastDescribe = AllDescribe
+                    .Skip(1)
+                    .Select(Describe => $"{SpaceText} * {Describe}");
+
+                var LastDescText = "";
+                if (LastDescribe.Any())
+                    LastDescText = $"\n{string.Join("\n", LastDescribe)}";
+
+                DescribeText = $"{FirstDescribeText}{LastDescText} */";
+            }
+            return DescribeText;
+        }
+
         internal List<ApiGroup> ReadApiFromJs()
         {
             var ApiJsPath = ApiSetting.ApiJsPath;
@@ -137,6 +152,7 @@ namespace Rugal.MVC.ApiLibrary.Pages.Controllers
             {
                 var GetClearText = Item
                     .Replace("        ", "")
+                    .Replace("    ", "")
                     .TrimEnd(',');
 
                 if (!GetClearText.Contains(':'))
@@ -150,10 +166,27 @@ namespace Rugal.MVC.ApiLibrary.Pages.Controllers
                     .Last() == ':')
                 {
                     var GroupName = ClearArray[0]
-                        .Replace(":", "")
+                        .Replace(":", "");
+
+                    var GroupDescribe = "";
+                    if (GroupName.Contains("*/"))
+                    {
+                        var DesArray = GroupName.Split("*/");
+                        GroupName = DesArray[1];
+                        GroupDescribe = DesArray[0]
+                            .Replace("/** ", "")
+                            .Replace(" * ", "")
+                            .TrimStart('\r', '\n', ' ')
+                            .TrimEnd('\r', '\n', ' ');
+                    }
+                    GroupName = GroupName
+                        .Replace("\r", "")
+                        .Replace("\n", "")
                         .Replace(" ", "");
+
                     var CreateGroup = new ApiGroup()
                     {
+                        GroupDescribe = GroupDescribe,
                         GroupName = GroupName,
                         Apis = new List<Api> { },
                     };
@@ -211,7 +244,7 @@ namespace Rugal.MVC.ApiLibrary.Pages.Controllers
                     {
                         ApiKey = ApiKey,
                         Url = ApiUrl,
-                        Describe = Describe,
+                        ApiDescribe = Describe,
                     };
                     Groups.Last().Apis.Add(CreateApi);
                 }
