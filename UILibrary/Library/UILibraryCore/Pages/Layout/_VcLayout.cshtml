@@ -10,6 +10,11 @@
     <link href="~/UILibrary/www/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/UILibrary/www/js/bootstrap.bundle.min.js"></script>
+    <script src="~/UILibrary/www/js/vue3.js"></script>
+
     <div class="container-fluid">
         <div style="height:10vh">
             <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
@@ -53,10 +58,6 @@
 
     </div>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/UILibrary/www/js/bootstrap.bundle.min.js"></script>
-    <script src="~/UILibrary/www/js/vue3.js"></script>
-
     @RenderSection("Scripts", required: false)
 </body>
 </html>
@@ -64,6 +65,8 @@
 <script>
     let GetBackUrl = document.referrer;
     if (!GetBackUrl.toLocaleLowerCase().includes('apilibrary') && !GetBackUrl.toLocaleLowerCase().includes('vclibrary')) {
+        if (GetBackUrl == '')
+            GetBackUrl = '/';
         sessionStorage.setItem('BackUrl', GetBackUrl);
     }
     let BackUrl = sessionStorage['BackUrl'];
