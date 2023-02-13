@@ -34,8 +34,8 @@ namespace Rugal.MVC.UILibraryCore.Extention.Startup
 
             App.UseStaticFiles(new StaticFileOptions
             {
-                FileProvider = new PhysicalFileProvider(Path.Combine(App.Environment.ContentRootPath, $"{Setting.ContentRootPath}/Pages/js")),
-                RequestPath = $"/{Setting.ContentRootPath}/Pages/js"
+                FileProvider = new PhysicalFileProvider(Path.Combine(App.Environment.ContentRootPath, $"{Setting.ContentRootPath}/Pages/www")),
+                RequestPath = "/UILibrary/www"
             });
         }
     }
