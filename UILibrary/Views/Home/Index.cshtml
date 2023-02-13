@@ -1,0 +1,13 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div id="BindApp" class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    @await Component.InvokeAsync(VcType.TestComponent)
+    @await Component.InvokeAsync(VcType.TestComponent2)
+    @await Component.InvokeAsync(VcType.SelectComponent)
+    <img src="~/image/1.png" />
+</div>
+
+<script src="~/js/test.js"></script>

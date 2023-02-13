@@ -1,0 +1,19 @@
+﻿ApiLibrary v1.0.0
+From Rugal Tu
+
+Dependent:
+UILibraryCore v1.0.0
+
+How to use:
+Step.1
+use method in Program.cs
+builder.Services.AddApiLibrary()
+
+Step.2
+create folder for Api.js file, the default path is wwwroot/ApiLibrary/Api.js
+
+Step.3
+include Api.js in layout or any shared .cshtml file 
+
+Step.4
+browse web in http://domain/ApiLibrary

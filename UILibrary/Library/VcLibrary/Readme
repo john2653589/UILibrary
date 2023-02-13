@@ -1,0 +1,21 @@
+﻿VcLibrary v1.0.0
+From Rugal Tu
+
+Dependent:
+UILibraryCore v1.0.0
+ApiLibrary v1.0.0
+
+How to use:
+Step.1
+use method in Program.cs
+builder.Services.AddVcLibrary()
+#Note:if you use AddVcLibrary, then you dont have to use AddApiLibrary
+
+Step.2
+create folder for ViewComponent file, the default path is VcLibrary/VcComponents/
+
+Step.3
+create a ViewComponent file in folder
+
+Step.3
+browse web in http://domain/VcLibrary

@@ -1,0 +1,425 @@
+﻿@using Rugal.MVC.UILibraryCore.Model;
+@model LibraryLayoutModel
+@{
+    ViewData["Title"] = "ApiLibrary";
+    Layout = $"~/{Model.LayoutPath}";
+}
+
+<style>
+    #sidebar-wrapper {
+        padding-left: 20px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+</style>
+
+
+<div id="AppContent" class="row pt-1 pb-5">
+    <div class="row align-self-center">
+        <div class="col-3" id="sidebar-wrapper">
+            <div class="list-group list-group-flush scrollarea border-bottom">
+                <!--Add Group-->
+                <button class="btn btn-dark"
+                        data-bs-toggle="modal" data-bs-target="#AddGroupModal">
+                    Add
+                </button>
+
+                <!--Left Sidebar-->
+                <div class="pt-1"
+                     v-for="(Item, Idx) in Groups">
+                    <div class="row m-0 p-0">
+
+                        <!--Left List Group-->
+                        <button class="col btn btn-primary list-group-item w-100 text-start"
+                                v-bind:class="{ 'bg-black text-white' : CheckActive(Item) }"
+                                v-text="Item.GroupName"
+                                v-on:click="GroupSelect(Item)">
+                        </button>
+
+                        <!--Left List Down Icon-->
+                        <button class="btn btn-primary list-group-item col-2"
+                                data-bs-toggle="collapse"
+                                v-bind:class="{ 'bg-black' : SelectGroupName == Item.GroupName }"
+                                v-bind:data-bs-target=" '#Group_' + Item.GroupName">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi bi-arrow-down" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd"
+                                      v-bind:fill="IsSelectColor(SelectGroupName == Item.GroupName)"
+                                      d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="collapse p-0 m-0 justify-content-end"
+                         v-bind:id=" 'Group_' + Item.GroupName">
+                        <div class="row p-0 m-0 justify-content-end"
+                             v-for="(Val, Idx) in Item.Apis">
+
+                            <!--Left List Api-->
+                            <div class="col-10 btn btn-primary list-group-item text-start fw-bold"
+                                 v-bind:class="{ 'bg-primary': IsSelectApi(Val, Item) }"
+                                 v-on:click="SelectApi(Val, Item)">
+                                <div v-text="Val.Describe"></div>
+                                <span v-text=" Idx + 1 + '. ' +  Val.ApiKey"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-9 container">
+            <div class="row">
+                <div class="col">
+                    <button class="btn btn-success"
+                            v-on:click="ShowAll()">
+                        Show All
+                    </button>
+
+                    <button class="ms-1 btn btn-secondary"
+                            v-on:click="HideAll()">
+                        Hide All
+                    </button>
+
+                    <button class="ms-1 btn btn-info"
+                            v-on:click="ReloadData()">
+                        Refresh
+                    </button>
+                </div>
+                <div class="col text-end">
+                    <button class="btn btn-primary" v-on:click="SaveApi()">
+                        Save
+                    </button>
+                    <button class="ms-1 btn btn-dark" data-bs-toggle="modal" data-bs-target="#AddApiModal">
+                        Add
+                    </button>
+                    <button class="ms-1 btn btn-danger"
+                            v-on:click="DeleteGroup()">
+                        Delete
+                    </button>
+                </div>
+            </div>
+            <hr />
+
+            <!--Right Content List-->
+            <div class="row bg-secondary bg-opacity-10 mt-2"
+                 v-for="(Item, Idx) in SelectGroup">
+
+                <!--List Title-->
+                <div v-bind:id="'ApiDiv_' + Item.ApiKey"
+                     class="p-0 m-0 row">
+                    <div class="btn text-start text-white bg-opacity-25"
+                         data-bs-toggle="collapse"
+                         v-on:click="ExtendApi(Item, false)"
+                         v-bind:class="{ 'bg-success' : SelectApiKey != Item.ApiKey, 'bg-danger' : SelectApiKey == Item.ApiKey }"
+                         v-bind:data-bs-target=" '#Api_' + Item.ApiKey">
+
+                        <!--Describe-->
+                        <div v-if="Item.Describe != '' && Item.Describe != null">
+                            <span class="text-secondary fw-bolder"
+                                  v-text="Item.Describe"
+                                  style="white-space:pre-wrap"></span>
+                        </div>
+
+                        <span class="text-black fw-bolder"
+                              v-text="Idx + 1 + '.' "></span>
+
+                        <!--Api Key-->
+                        <span class="text-black fw-bolder"
+                              v-text="Item.ApiKey + ': ' "></span>
+
+                        <!--Api Url-->
+                        <span class="text-black fw-bolder text-opacity-25"
+                              v-text="Item.Url"></span>
+                    </div>
+                </div>
+
+                <!--List Content-->
+                <div class="collapse"
+                     v-bind:id="'Api_' + Item.ApiKey">
+                    <div class="row">
+                        <div class="col-12 p-0 m-0 row">
+                            <div class="col-6 m-0 p-0">
+                                <input class="form-control bg-black text-white"
+                                       v-model="Item.ApiKey" />
+                            </div>
+                            <div class="col-6 m-0 p-0 row justify-content-end">
+                                <button class="col-2 btn btn-danger"
+                                        v-on:click="DeleteApi(Item)">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12 p-0 m-0">
+                            <input class="form-control bg-dark text-white"
+                                   v-model="Item.Url" />
+                        </div>
+                    </div>
+                    <div class="row" style="min-height:130px">
+                        <div class="col-12 p-0 m-0">
+                            <textarea class="form-control bg-dark text-white h-100"
+                                      v-model="Item.Describe">
+
+                            </textarea>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+    </div>
+
+    <!--Add Modal-->
+    <div id="AddApiModal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Api</h5>
+                </div>
+                <div class="modal-body">
+                    <div>
+                        <label>Api Key</label>
+                        <input class="mt-1 form-control"
+                               v-model="NewApi.ApiKey" />
+                    </div>
+
+                    <div class="mt-2">
+                        <label>Url</label>
+                        <input class="mt-1 form-control"
+                               v-model="NewApi.Url" />
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Close
+                    </button>
+                    <button class="btn btn-primary"
+                            v-on:click="AddApi()">
+                        Add
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Add Group-->
+    <div id="AddGroupModal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Group</h5>
+                </div>
+                <div class="modal-body">
+                    <div>
+                        <label>Group Name</label>
+                        <input class="mt-1 form-control"
+                               v-model="NewGroup.GroupName" />
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Close
+                    </button>
+                    <button class="btn btn-primary"
+                            v-on:click="AddGroup()">
+                        Add
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+<script src="~/js/site.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
+@*<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>*@
+<script src="~/lib/Vue/vue.js"></script>
+
+<script src="~/api//ApiLibrary.js"></script>
+
+<script>
+
+    window.onload = () => {
+        const { createApp } = Vue;
+        const Result = {
+            RenderHtml: '',
+            Groups: [],
+            SelectGroup: [],
+            SelectGroupName: '',
+            SelectApiKey: '',
+            NewApi: {},
+            NewGroup: {},
+        };
+
+        let VueOption = {
+            data() {
+                return Result;
+            },
+            methods: {
+                CheckActive: (Item) => {
+                    let GetUrl = window.location.href.split('#')[1];
+                    if (GetUrl == undefined)
+                        return false;
+
+                    let IsActive = GetUrl.toLocaleLowerCase() == Item.GroupName.toLocaleLowerCase()
+                    return IsActive;
+                },
+                GroupSelect(Item) {
+                    let GetBaseUrl = window.location.href.split('#')[0];
+                    window.location.href = `${GetBaseUrl}#${Item.GroupName}`;
+                    Result.SelectGroup = Item.Apis;
+                    Result.SelectGroupName = Item.GroupName;
+                    VueProxy.$forceUpdate();
+                },
+                IsSelectColor(IsSelect) {
+                    return IsSelect ? '#FFFFFF' : '#000000';
+                },
+                SelectApi(Item, Group, IsScroll = true) {
+                    if (Group != null)
+                        VueOption.methods.GroupSelect(Group);
+
+                    let UrlArray = window.location.href.split('#');
+                    let GetBaseUrl = UrlArray[0];
+                    let GroupName = UrlArray[1];
+                    window.location.href = `${GetBaseUrl}#${GroupName}#${Item.ApiKey}`;
+
+                    Result.SelectApiKey = Item.ApiKey;
+                    VueProxy.$forceUpdate();
+
+                    if (IsScroll == true) {
+                        let DomId = `ApiDiv_${Item.ApiKey}`;
+                        let Dom = document.getElementById(DomId);
+                        Dom?.scrollIntoView();
+                    }
+                },
+                ExtendApi(Item, IsScroll) {
+                    VueOption.methods.SelectApi(Item, null, IsScroll);
+                },
+                CheckSelectParam() {
+                    if (!window.location.href.includes('#'))
+                        return;
+                    let UrlArray = window.location.href.split('#');
+                    let GroupName = UrlArray[1];
+                    let Group = Result.Groups.find(Item => Item.GroupName == GroupName);
+                    VueOption.methods.GroupSelect(Group);
+                    if (UrlArray.length > 2) {
+                        let ApiKey = UrlArray[2];
+                        VueOption.methods.ExtendApi({ ApiKey }, Group, true);
+                    }
+                },
+                IsSelectApi(Item, Group) {
+                    if (Item.ApiKey == Result.SelectApiKey && Group.GroupName == Result.SelectGroupName)
+                        return true;
+
+                    return false;
+                },
+
+
+                DeleteApi(Item) {
+                    if (confirm(`Is Check Delete「${Item.ApiKey}」?`) != true)
+                        return;
+
+                    let GroupIndex = Result.Groups.findIndex(Val => Val.GroupName == Result.SelectGroupName);
+                    let FindGroup = Result.Groups[GroupIndex];
+                    let FindApiIndex = FindGroup.Apis.findIndex(Val => Val.ApiKey == Item.ApiKey);
+                    Result.Groups[GroupIndex].Apis.splice(FindApiIndex, 1);
+                    VueProxy.$forceUpdate();
+                },
+                DeleteGroup() {
+                    if (confirm(`Is Check Delete Group「${Result.SelectGroupName}」`) != true)
+                        return;
+
+                    if (confirm(`Double Check Delete Group「${Result.SelectGroupName}」`) != true)
+                        return;
+
+                    let GroupIndex = Result.Groups.findIndex(Val => Val.GroupName == Result.SelectGroupName);
+                    Result.Groups.splice(GroupIndex, 1);
+
+                    VueOption.methods.GroupSelect(Result.Groups[Result.Groups.length - 1]);
+                    VueProxy.$forceUpdate();
+                },
+                AddApi() {
+                    let FindGroup = Result.Groups.find(Val => Val.GroupName == Result.SelectGroupName);
+                    FindGroup.Apis.push({
+                        ...Result.NewApi
+                    });
+                    Result.NewApi = {};
+
+                    $('#AddApiModal').modal('hide');
+                    VueProxy.$forceUpdate();
+                },
+                AddGroup() {
+                    Result.Groups.push({
+                        GroupName: Result.NewGroup.GroupName,
+                        Apis: [],
+                    });
+                    $('#AddGroupModal').modal('hide');
+                    VueProxy.$forceUpdate();
+                },
+                SaveApi() {
+                    if (confirm('Is Check Save?') != true)
+                        return;
+
+                    fetch(`SaveApi`, {
+                        method: 'POST',
+                        body: JSON.stringify(Result.Groups),
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        }
+                    })
+                        .then(() => {
+                            VueOption.methods.ReloadData();
+                            alert('Saved');
+                        })
+                        .catch(() => {
+                            alert('Save Fail');
+                        });
+                },
+                ReloadData() {
+                    fetch(`List_AllApi`)
+                        .then(async (ApiRet) => {
+                            let Groups = await ApiRet.json();
+                            Result.Groups = Groups;
+
+                            if (!window.location.href.includes('#'))
+                                VueOption.methods.GroupSelect(Groups[0]);
+                            else
+                                VueOption.methods.CheckSelectParam();
+
+                            VueProxy.$forceUpdate();
+                        });
+                },
+                ShowAll() {
+                    let AllDom = document.querySelectorAll(`[id*="Api_"]`);
+                    for (let i = 0; i < AllDom.length; i++) {
+                        let Item = AllDom[i];
+                        $(Item).collapse('show');
+                    }
+                },
+                HideAll() {
+                    let AllDom = document.querySelectorAll(`[id*="Api_"]`);
+                    for (let i = 0; i < AllDom.length; i++) {
+                        let Item = AllDom[i];
+                        $(Item).collapse('hide');
+                    }
+                }
+            },
+        };
+        const VueProxy = createApp(VueOption).mount('#AppContent');
+
+        VueOption.methods.ReloadData();
+    };
+
+</script>
