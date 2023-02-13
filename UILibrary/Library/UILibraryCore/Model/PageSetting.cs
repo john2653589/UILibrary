@@ -10,7 +10,8 @@
     public partial class LibraryLayoutModel
     {
         public string LayoutPath { get; set; }
-        
+        public string ContentRootPath { get; set; }
+
         public bool Enable_VcEditor { get; set; }
         public string VcEditorRoute { get; set; }
 

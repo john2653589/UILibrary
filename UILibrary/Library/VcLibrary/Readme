@@ -8,8 +8,9 @@ ApiLibrary v1.0.0
 How to use:
 Step.1
 use method in Program.cs
-builder.Services.AddVcLibrary()
-#Note:if you use AddVcLibrary, then you dont have to use AddApiLibrary
+builder.Services.AddVcLibrary() //Note:if you use AddVcLibrary, then you dont have to use AddApiLibrary()
+app.UseUILibrary();
+
 
 Step.2
 create folder for ViewComponent file, the default path is VcLibrary/VcComponents/

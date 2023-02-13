@@ -1,4 +1,6 @@
+using Microsoft.Extensions.FileProviders;
 using Rugal.MVC.ApiLibrary.Extention.Startup;
+using Rugal.MVC.UILibraryCore.Extention.Startup;
 using Rugal.MVC.VcLibrary.Extention.Startup;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
@@ -24,6 +26,10 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+#region Use UILibrary
+app.UseUILibrary();
+#endregion
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

@@ -9,7 +9,22 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="wwwroot\lib\Vue\**" />
+    <Content Remove="wwwroot\lib\Vue\**" />
+    <EmbeddedResource Remove="wwwroot\lib\Vue\**" />
+    <None Remove="wwwroot\lib\Vue\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Library\UILibraryCore\Pages\Layout\vue3.js" />
     <None Remove="wwwroot\ApiLibrary\Api.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Library\UILibraryCore\Pages\js\vue3.js">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

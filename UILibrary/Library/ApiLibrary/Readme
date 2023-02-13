@@ -8,6 +8,8 @@ How to use:
 Step.1
 use method in Program.cs
 builder.Services.AddApiLibrary()
+app.UseUILibrary();
+
 
 Step.2
 create folder for Api.js file, the default path is wwwroot/ApiLibrary/Api.js
