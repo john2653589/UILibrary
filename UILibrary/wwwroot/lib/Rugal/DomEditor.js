@@ -2,6 +2,7 @@
 class DomEditor {
 
     constructor(_Doms = null) {
+        this.Id = this._GenerateId();
         this.QueryParams = [];
         this._Props = {
             Doms: [],
@@ -19,6 +20,8 @@ class DomEditor {
 
         if (_Doms instanceof NodeList)
             this._Props.Doms = [..._Doms];
+        else if (_Doms instanceof HTMLCollection)
+            this._Props.Doms = [..._Doms];
         else if (_Doms instanceof Element)
             this._Props.Doms = [_Doms];
         else if (Array.isArray(_Doms))
@@ -27,9 +30,19 @@ class DomEditor {
             throw new Error('error doms type');
     }
 
+    //#region Instance Controller
+    CreateWithElement(Element = []) {
+        if (!Array.isArray(Element))
+            Element = [Element];
+
+        return new DomEditor(Element);
+    }
+    //#endregion
+
     //#region With Query
     WithId(DomId) {
-        this.QueryParams.push(`[id="${DomId}"]`);
+        let Query = this._QueryString_Id(DomId);
+        this.QueryParams.push(Query);
         return this;
     }
     WithAttr(AttrName, AttrValue = null) {
@@ -59,7 +72,8 @@ class DomEditor {
 
     //#region Where Doms
     WhereId(DomId) {
-        this._BaseWhere(`[id="${DomId}"]`);
+        let Query = this._QueryString_Id(DomId);
+        this._BaseWhere(Query);
         return this;
     }
     WhereAttr(AttrName, AttrValue = null) {
@@ -82,16 +96,29 @@ class DomEditor {
     }
     //#endregion
 
-    //#region Set For Element
+    //#region Element Controller
     SetElement_Attr(SetElement, AttrName, AttrValue) {
         if (!SetElement instanceof Element)
             throw new Error('error element param type');
         SetElement.setAttribute(AttrName, AttrValue);
         return this;
     }
+    GetElement_Attr(GetElement, AttrName) {
+        if (!GetElement instanceof Element)
+            throw new Error('error element param type');
+
+        let Value = GetElement.getAttribute(AttrName);
+        return Value;
+    }
     //#endregion
 
     //#region Check Query
+    _QueryString_Id(DomId) {
+        return this._QueryString_Attr('id', DomId);
+    }
+    _QueryString_Attr(AttrName, AttrValue) {
+        return `[${AttrName}="${AttrValue}"]`;
+    }
     _NeedQuery() {
         if (this.QueryParams.length > 0)
             this.Query();
@@ -124,6 +151,10 @@ class DomEditor {
     //#endregion
 
     //#region Process Function
-
+    _GenerateId() {
+        return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+    }
     //#endregion
 }

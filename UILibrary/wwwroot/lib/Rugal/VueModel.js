@@ -6,18 +6,32 @@
 const { createApp } = Vue
 const Dom = new DomEditor();
 
-class VueModel {
+class VueModel extends CommonFunc {
 
     constructor() {
+        super();
         this.Store = {};
         this.ApiStore = {};
-        this.VueOption = {};
+        this.VueOption = {
+            methods: {},
+        };
 
         this.BindElementId = 'BindApp';
         this.DefaultStoreKey = 'Default';
+        this.WithDefaultStore(this.DefaultStoreKey);
         this.VueProxy = null;
         this.IsInited = false;
+
+        this.AcceptAutoBindType_Input = ['input', 'textarea'];
+        this.AcceptAutoBindType_Text = ['div', 'label', 'span'];
+        this.FuncKey_FormatDate = 'Format_Date';
     }
+
+    //#region Property
+    get Dom() {
+        return new DomEditor();
+    }
+    //#endregion
 
     //#region Init
     Init() {
@@ -25,12 +39,12 @@ class VueModel {
             let GetStore = this.Store;
             let SetStore = {
                 ...GetStore,
-                Format_Date: (DateValue, StoreKey) => {
-                    if (DateValue != undefined) {
-                        let SetValue = DateValue.replaceAll('/', '-');
-                        this.UpdateStore(SetValue, StoreKey);
-                    }
-                }
+                //Format_Date: (DateValue, StoreKey) => {
+                //    if (DateValue != undefined) {
+                //        let SetValue = DateValue.replaceAll('/', '-');
+                //        this.UpdateStore(SetValue, StoreKey);
+                //    }
+                //}
             };
             let SetVueOption = {
                 ...this.VueOption,
@@ -44,22 +58,19 @@ class VueModel {
         }
         return this;
     }
-
     WithDefaultStore(_DefaultStoreKey) {
         this.DefaultStoreKey = _DefaultStoreKey;
+        this.Store[this.DefaultStoreKey] ??= {};
         return this;
     }
-
     WithSotreData(_StoreData) {
         this.Store = _StoreData;
         return this;
     }
-
     WithRootId(_BindElementId = 'BindApp') {
         this.BindElementId = _BindElementId;
         return this;
     }
-
     WithVueOption(_VueOption = {}) {
         this.VueOption = _VueOption;
         return this;
@@ -67,70 +78,196 @@ class VueModel {
     //#endregion
 
     //#region Add Vue Command
-    AddV_Text(DomId, StoreKey = null, Format = null) {
-        StoreKey = this._ReCombineStoreKey(StoreKey, DomId);
-        this.AddVdom_Text(Dom.WithId(DomId), StoreKey, Format);
-        return this;
-    }
-    AddVq_Text(QueryString, StoreKey = null, Format = null) {
-        StoreKey = this._ReCombineStoreKey(StoreKey);
-        this.AddVdom_Text(Dom.WithCustom(QueryString), StoreKey, Format);
-        return this;
-    }
-    AddVdom_Text(_Dom, StoreKey, Format = null) {
-        let Dom = this._BaseCheck_DomEditor(_Dom);
-        if (Format != null)
-            StoreKey = `$options.filters.${Format}(${StoreKey})`;
-        Dom.SetAttr('v-text', StoreKey);
-        return this;
-    }
 
+    //#region Text
+    AddV_Text(DomId, StoreKey = null) {
+        this.AddVdom_Text(this.Dom.WithId(DomId), StoreKey ?? DomId);
+        return this;
+    }
+    AddVq_Text(QueryString, StoreKey = null) {
+        this.AddVdom_Text(this.Dom.WithCustom(QueryString), StoreKey);
+        return this;
+    }
+    AddVdom_Text(Dom, ...StoreKey) {
+        StoreKey = this._ReCombineStoreKey(StoreKey);
+        this.AddStore(StoreKey, null);
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+        GetDom.SetAttr('v-text', StoreKey);
+        return this;
+    }
+    //#endregion
+
+    //#region Input
     AddV_Input(DomId, StoreKey = null) {
-        StoreKey = this._ReCombineStoreKey(StoreKey, DomId);
-        this.AddVdom_Input(Dom.WithId(DomId), StoreKey);
+        this.AddVdom_Input(this.Dom.WithId(DomId), StoreKey ?? DomId);
         return this;
     }
     AddVq_Input(QueryString, StoreKey = null) {
-        StoreKey = this._ReCombineStoreKey(StoreKey);
-        this.AddVdom_Input(Dom.WithCustom(QueryString), StoreKey);
+        this.AddVdom_Input(this.Dom.WithCustom(QueryString), StoreKey);
         return this;
     }
-    AddVdom_Input(_Dom, StoreKey) {
-        let Dom = this._BaseCheck_DomEditor(_Dom);
-        Dom.ForEach(Item => {
+    AddVdom_Input(Dom, ...StoreKey) {
+        StoreKey = this._ReCombineStoreKey(StoreKey);
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+
+        this.AddStore(StoreKey, null);
+        GetDom.ForEach(Item => {
             let VModelCommand = 'v-model';
             switch (Item.type) {
+                case 'datetime':
+                case 'datetime-local':
                 case 'date':
-                    Dom.SetElement_Attr(Item, ':formatter', `Format_Date(${StoreKey}, '${StoreKey}')`);
+                    this.AddVdom_Format(GetDom, this.FuncKey_FormatDate, StoreKey, `'${StoreKey}'`);
                     break;
                 case 'number':
                     VModelCommand = 'v-model.number';
                     break;
             }
-            Dom.SetElement_Attr(Item, VModelCommand, StoreKey);
+            GetDom.SetElement_Attr(Item, VModelCommand, StoreKey);
         });
         return this;
     }
+    //#endregion
 
-
-
-    _ReCombineStoreKey(Param1, Param2 = null) {
-        if (Param1 == null)
-            throw new Error('Param1 is null');
-
-        let ParamArray = [Param1, Param2].filter(Item => Item != null);
-        let BindStoreKey = ParamArray.join('.');
-        if (!BindStoreKey.includes('.'))
-            BindStoreKey = `${this.DefaultStoreKey}.${BindStoreKey}`;
-
-        return BindStoreKey;
+    //#region Add Function Format
+    AddV_Function(FuncKey, Func) {
+        this.VueOption.methods[FuncKey] = Func;
+        return this;
+    }
+    AddV_Format(DomId, FuncKey, ...Params) {
+        this.AddVdom_Format(this.Dom.WithId(DomId), FuncKey, Params ?? DomId);
+        return this;
+    }
+    AddVq_Format(QueryString, FuncKey, ...Params) {
+        this.AddVdom_Format(this.Dom.WithCustom(QueryString), FuncKey, Params);
+        return this;
+    }
+    AddVdom_Format(_Dom, FuncKey, ...Params) {
+        Params = Params.join(',');
+        let GetDom = this._BaseCheck_DomEditor(_Dom);
+        GetDom.SetAttr(':formatter', `${FuncKey}(${Params})`);
+        return this;
     }
     //#endregion
 
+    //#region Base Format Function
+    AddBase_Format_Date() {
+        this.AddV_Function(this.FuncKey_FormatDate, (DateValue, StoreKey) => {
+            let SetValue = DateValue;
+            if (DateValue != undefined) {
+                SetValue = DateValue.replaceAll('/', '-').replaceAll('T', ' ');
+            }
+            if (DateValue != SetValue)
+                this.UpdateStore(SetValue, StoreKey);
+        })
+        return this;
+    }
+    //#endregion
+
+    //#region Select
+    AddV_Select(Option = {
+        SelectId: null,
+        From: null,
+        To: null,
+        OptionId: null,
+        Display: null,
+        Value: null,
+    }) {
+        let SelectQuery = this.Dom._QueryString_Id(Option.SelectId);
+        let OptionQuery = this.Dom._QueryString_Id(Option.OptionId);
+
+        this.AddVdom_Select({
+            SelectQuery,
+            OptionQuery,
+            From: Option.From,
+            To: Option.To,
+            Display: Option.Display,
+            Value: Option.Value,
+        });
+        return this;
+    }
+    AddVq_Select(Option = {
+        SelectQuery: null,
+        From: null,
+        To: null,
+        OptionQuery: null,
+        Display: null,
+        Value: null,
+    }) {
+        this.AddStore(Option.To, null);
+        let SelectDom = this.Dom
+            .WithCustom(Option.SelectQuery)
+            .ForEach(Item => {
+                if (Option.From.toLowerCase() != '-html') {
+                    let Display = this._ReCombineItemKey(Option.Display);
+                    let Value = this._ReCombineItemKey(Option.Value);
+
+                    let OptionDom = new DomEditor(Item.children)
+                        .WhereCustom(Option.OptionQuery)
+                        .SetAttr('v-text', Display)
+                        .SetAttr(':value', Value)
+                        .SetAttr('v-for', `(Item, Idx) in ${Option.From}`);
+                }
+                let StoreKey = this._ReCombineStoreKey(Option.To);
+                new DomEditor(Item).SetAttr('v-model', StoreKey);
+            })
+        return this;
+    }
+    //#endregion
+
+    //#endregion
+
+    //#region AutoBind
+
+    //#region AutoBind Text
+    AddVq_AutoBind_Text(QueryString, AttrName, StoreKey) {
+        this.AddVdom_AutoBind_Text(this.Dom.WithCustom(QueryString), AttrName, StoreKey);
+        return this;
+    }
+    AddVdom_AutoBind_Text(Dom, AttrName, StoreKey) {
+        StoreKey = StoreKey ?? this.DefaultStoreKey;
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+        GetDom.ForEach(Item => {
+            let TagName = Item.tagName.toLowerCase();
+            if (!this.AcceptAutoBindType_Text.includes(TagName))
+                return;
+
+            let AttrValue = GetDom.GetElement_Attr(Item, AttrName);
+            let SetStoreKey = `${StoreKey}.${AttrValue}`;
+            this.AddVdom_Text(GetDom.CreateWithElement(Item), SetStoreKey);
+        });
+        return this;
+    }
+    //#endregion
+
+    //#region AutoBind Input
+    AddVq_AutoBind_Input(QueryString, AttrName, StoreKey) {
+        this.AddVdom_AutoBind_Input(this.Dom.WithCustom(QueryString), AttrName, StoreKey);
+        return this;
+    }
+    AddVdom_AutoBind_Input(Dom, AttrName, StoreKey) {
+        StoreKey = StoreKey ?? this.DefaultStoreKey;
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+        GetDom.ForEach(Item => {
+            let TagName = Item.tagName.toLowerCase();
+            if (!this.AcceptAutoBindType_Input.includes(TagName))
+                return;
+
+            let AttrValue = GetDom.GetElement_Attr(Item, AttrName);
+            let SetStoreKey = `${StoreKey}.${AttrValue}`;
+            this.AddVdom_Input(GetDom.CreateWithElement(Item), SetStoreKey);
+        });
+        return this;
+    }
+    //#endregion
+
+    //#endregion
+
     //#region Base Add Vue Command
-    _BaseCheck_DomEditor(Dom) {
-        if (Dom instanceof DomEditor)
-            return Dom;
+    _BaseCheck_DomEditor(CheckDom) {
+        if (CheckDom instanceof DomEditor) {
+            return CheckDom;
+        }
         throw new Error('error DomEditor type');
     }
     //#endregion
@@ -148,15 +285,18 @@ class VueModel {
         return this;
     }
     AddStore(StoreKey, StoreData = {}) {
-        if (this.Store[StoreKey] != null)
+        if (this._RCS_GetStore(StoreKey, this.Store) != null)
             return this;
 
-        this.Store[StoreKey] = StoreData;
+        this._RCS_SetStore(StoreKey, StoreData, this.Store, true);
         this._UpdateVueStore();
         return this;
     }
 
     _RCS_GetStore(StoreKey, FindStore) {
+        if (FindStore == null)
+            return null;
+
         if (!StoreKey.includes('.'))
             return this.Store[StoreKey];
 
@@ -167,7 +307,7 @@ class VueModel {
     _RCS_SetStore(StoreKey, StoreData, FindStore, IsReplace) {
         if (!StoreKey.includes('.')) {
             if (!(StoreKey in FindStore) || IsReplace) {
-                this._BaseSetStoreObject(FindStore[StoreKey], StoreData);
+                this._BaseSetStoreObject(StoreData, StoreKey, FindStore);
             }
             else {
                 let GetStore = FindStore[StoreKey];
@@ -176,7 +316,7 @@ class VueModel {
                 if (typeof GetStore != 'object')
                     FindStore[StoreKey] = SetStore;
                 else {
-                    this._BaseSetStoreObject(FindStore[StoreKey], StoreData);
+                    this._BaseSetStoreObject(StoreData, StoreKey, FindStore);
                 }
             }
             return FindStore[StoreKey];
@@ -184,14 +324,20 @@ class VueModel {
         else {
             let FirstKey = StoreKey.split('.')[0];
             let NextKey = StoreKey.replaceAll(`${FirstKey}.`, '');
+            if (FindStore[FirstKey] == null) {
+                FindStore[FirstKey] = {};
+            }
             return this._RCS_SetStore(NextKey, StoreData, FindStore[FirstKey], IsReplace);
         }
     }
-    _BaseSetStoreObject(Target, Source) {
-        let AllKeys = Object.keys(Source);
-        for (let i = 0; i < AllKeys.length; i++) {
-            let Key = AllKeys[i];
-            Target[Key] = Source[Key];
+    _BaseSetStoreObject(SetData, StoreKey, FindStore) {
+        if (FindStore[StoreKey] == null || typeof SetData != 'object' || Array.isArray(SetData)) {
+            FindStore[StoreKey] = SetData;
+        }
+        else {
+            this._ForEachKeyValue(SetData, (Key, Value) => {
+                FindStore[StoreKey][Key] = Value;
+            });
         }
     }
     _UpdateVueStore() {
@@ -294,13 +440,32 @@ class VueModel {
     //#endregion
 
     //#region Base Process
-    _ForEachKeyValue(Param, Func = (Key, Value) => { }) {
-        let AllKey = Object.keys(Param);
-        for (let i = 0; i < AllKey.length; i++) {
-            let Key = AllKey[i];
-            let Value = Param[Key];
-            Func?.call(this, Key, Value);
+    _BaseReCombine(FirstKey, Params) {
+        if (!Array.isArray(Params))
+            Params = [Params];
+
+        let ParamArray = Params.filter(Item => !this._IsNullOrEmpty(Item));
+        if (ParamArray.length == 0)
+            this._Throw('Params cannot empty');
+
+        if (ParamArray.length == 1) {
+            let GetKey = ParamArray[0];
+            let SkipChar = ['.', '(', ')'];
+            let FindAny = SkipChar.filter(Item => GetKey.includes(Item));
+            if (FindAny.length == 0)
+                ParamArray = [FirstKey, ...ParamArray];
         }
+
+        let BindStoreKey = ParamArray.join('.');
+        return BindStoreKey;
+    }
+    _ReCombineStoreKey(Params) {
+        let BindStoreKey = this._BaseReCombine(this.DefaultStoreKey, Params);
+        return BindStoreKey;
+    }
+    _ReCombineItemKey(Params) {
+        let BindStoreKey = this._BaseReCombine('Item', Params);
+        return BindStoreKey;
     }
     _IsString(Data) { return typeof Data === 'string'; }
     _TryToJson(Data) {
@@ -323,4 +488,5 @@ class VueModel {
     }
     //#endregion
 }
-const Model = new VueModel();
+const Model = new VueModel()
+    .AddBase_Format_Date();

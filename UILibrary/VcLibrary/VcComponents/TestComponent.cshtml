@@ -1,18 +1,27 @@
 ﻿
+
 <div vc-name="TestComponent">
     <div>
         <div vc-col="Title">
         </div>
 
-        <div vc-col="Id">
+        <div vc-col="Content">
         </div>
-        中文
-        <input vc-col="Title2" />
-        <input vc-col="Id2" />
 
-        <h1>
-            <a id="Link" href="/home/Privacy">Go</a>
-        </h1>
+        <input vc-col="UserInput" />
+        <br />
+
+        <input type="datetime-local" vc-col="GetDateTime" />
+        <br />
+
+        <select vc-col="GetSelect">
+            <option value="0">請選擇</option>
+            <option vc-col="GetOption"></option>
+        </select>
+
+        <div>
+            選項v-for版本
+            <label vc-col="ForCol"></label>
+        </div>
     </div>
-
 </div>

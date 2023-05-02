@@ -1,18 +1,46 @@
 ﻿/**
- *  VueModel.js v2.0.0
+ *  VcController.js v1.0.0
  *  From Rugal Tu
- *  Based on Vue3
+ *  Based on VueModel.js 2.0.0
  * */
-class VcController {
+
+class VcController extends CommonFunc {
 
     constructor() {
+        super();
+
         this.Configs = {};
         this.IsConfigDone = false;
+        this.ApiProp = ['Url', 'Type'];
+        this.CommandNameProp = ['mode', 'column', 'from', 'to', 'select', 'option', 'display', 'value'];
+        this.DefaultVcName = 'Default';
+        this.IsUseQueryWhere_VcName = false;
+
+        try {
+            this.Model = Model;
+        }
+        catch {
+            this.Model = new VueModel();
+        }
     }
+
+    //#region Property
+    get Dom() {
+        return new DomEditor();
+    }
+    //#endregion
+
+    //#region With Property
+
+    With_VueModel(SetModel) {
+        this.Model = SetModel;
+        return this;
+    }
+    //#endregion
 
     //#region Add Setting
     AddVc_Config(_Config) {
-        let VcName = _Config['VcName'];
+        let VcName = _Config['VcName'] ?? this.DefaultVcName;
         this._Create_Config(VcName);
         this._DeepObjectExtend(this.Configs[VcName], _Config);
 
@@ -20,7 +48,8 @@ class VcController {
         return this;
     }
 
-    AddVc_Config_Api(VcName, _Api) {
+    AddVc_Config_Api(_Api) {
+        let VcName = _Config['VcName'] ?? this.DefaultVcName;
         this._Create_Config(VcName);
         this._DeepObjectExtend(this.Configs[VcName].Api, _Api);
         this._ClearConfig(VcName);
@@ -35,8 +64,19 @@ class VcController {
     }
     //#endregion
 
+    //#regin Query Setting
+    UseQueryWhere_VcName() {
+        this.IsUseQueryWhere_VcName = true;
+        return this;
+    }
+    //#endregion
+
     //#region Startup
-    Done() {
+    AsNew() {
+        return new VcController();
+    }
+
+    Init() {
         if (!this.IsConfigDone) {
             this._SetApi();
             this._SetBind();
@@ -54,58 +94,85 @@ class VcController {
 
     //#region Using VueModel2
     _SetApi() {
-        this._BaseForEach_Api(Api => {
-            let AllApiKey = Object.keys(Api);
-            for (let j = 0; j < AllApiKey.length; j++) {
-                let ApiKey = AllApiKey[j];
-                let ApiContent = Api[ApiKey];
+        this._ForEachKeyValue(this.Configs, (VcName, Config) => {
+            this._ForEachKeyValue(Config.Api, (ApiKey, ApiContent) => {
                 this._VueModel_AddApi(ApiKey, ApiContent);
-            }
+            });
         });
         return this;
     }
     _VueModel_AddApi(ApiKey, ApiContent) {
         let Url = ApiContent.Url;
-        let MethodType = ApiContent.MethodType.toLocaleUpperCase();
+        let MethodType = ApiContent['Type'].toLocaleUpperCase();
         if (MethodType == 'GET')
-            Model.AddApi_Get(ApiKey, Url);
+            this.Model.AddApi_Get(ApiKey, Url);
         else if (MethodType == 'POST')
-            Model.AddApi_Post(ApiKey, Url);
+            this.Model.AddApi_Post(ApiKey, Url);
         else
             throw new Error('error MethodType');
     }
 
     _SetBind() {
-        this._BaseForEach_Bind(Bind => {
-            let AllStoreKeys = Object.keys(Bind);
-            for (let j = 0; j < AllStoreKeys.length; j++) {
-                let StoreKey = AllStoreKeys[j];
-                let StoreSet = Bind[StoreKey];
-                let AllColumnSet = Object.keys(StoreSet);
-                for (let k = 0; k < AllColumnSet.length; k++) {
-                    let ColumnName = AllColumnSet[k];
-                    let ColumnSet = StoreSet[ColumnName];
-                    this._VueModel_AddColumnSet(StoreKey, ColumnName, ColumnSet);
-                }
-            }
+        this._ForEachKeyValue(this.Configs, (VcName, Config) => {
+            this._ForEachKeyValue(Config.Bind, (StoreKey, StoreSet) => {
+                this._ForEachKeyValue(StoreSet, (ColumnName, ColumnSet) => {
+                    let SetArray = ColumnSet;
+                    if (!Array.isArray(ColumnSet)) {
+                        SetArray = [ColumnSet];
+                    }
+
+                    SetArray.forEach(Item => {
+                        this._VueModel_AddColumnSet(VcName, StoreKey, Item);
+                    });
+                })
+            });
         });
         return this;
     }
-    _VueModel_AddColumnSet(StoreKey, ColumnName, ColumnSet) {
-        let { Col, Mode } = ColumnSet;
+    _VueModel_AddColumnSet(VcName, StoreKey, ColumnSet) {
+        let Column = ColumnSet['column'];
+        let From = ColumnSet['from'];
+        let Mode = ColumnSet['mode'];
+        let To = ColumnSet['to'];
+        let SetStoreKey = From;
+        if (!SetStoreKey.includes(':'))
+            SetStoreKey = `${StoreKey}.${From}`;
 
-        let GetDoms = Dom.WithAttr('vc-col', ColumnName);
-        let SetStoreKey = `${StoreKey}.${Col}`;
+        let GetDom = this.Dom;
+        let GetDoms;
+        if (this.IsUseQueryWhere_VcName) {
+            let WhereVcName = GetDom._QueryString_Attr('vc-name', VcName);
+            let WhereVcCol = GetDom._QueryString_Attr('vc-col', Column)
+            GetDoms = GetDom.WithCustom(`${WhereVcName} ${WhereVcCol}`);
+        }
+        else
+            GetDoms = GetDom.WithAttr('vc-col', Column);
+
         switch (Mode) {
             case 'text':
-                Model.AddVdom_Text(GetDoms, SetStoreKey);
+                this.Model.AddVdom_Text(GetDoms, SetStoreKey);
                 break;
             case 'input':
-                Model.AddVdom_Input(GetDoms, SetStoreKey);
+                this.Model.AddVdom_Input(GetDoms, SetStoreKey);
                 break;
             case 'select':
-                let ss = 1;
-                ss = 2;
+                let Option = ColumnSet['option'];
+                let Display = ColumnSet['display'];
+                let Value = ColumnSet['value'];
+                let SelectQuery = Dom._QueryString_Attr('vc-col', Column);
+                let OptionQuery = Dom._QueryString_Attr('vc-col', Option);
+
+                this.Model.AddVq_Select({
+                    SelectQuery,
+                    From,
+                    To,
+                    OptionQuery,
+                    Display,
+                    Value,
+                })
+                break;
+            case 'for':
+                
                 break;
         }
     }
@@ -124,31 +191,6 @@ class VcController {
                 let ApiContent = GetConfig.Api[ApiKey];
                 this._VueModel_AddApi(ApiKey, ApiContent);
             }
-        }
-    }
-
-    _BaseForEach_Api(EachFunc, VcName = null) {
-        this._BaseForEach_Config((GetConfig, GetVcName) => {
-            if (GetConfig.Api == null)
-                return;
-
-            EachFunc(GetConfig.Api, GetVcName);
-        }, VcName);
-    }
-    _BaseForEach_Bind(EachFunc, VcName = null) {
-        this._BaseForEach_Config((GetConfig, GetVcName) => {
-            if (GetConfig.Bind == null)
-                return;
-
-            EachFunc(GetConfig.Bind, GetVcName);
-        }, VcName);
-    }
-    _BaseForEach_Config(EachFunc, VcName = null) {
-        let AllVcName = VcName == null ? Object.keys(this.Configs) : [VcName];
-        for (let i = 0; i < AllVcName.length; i++) {
-            let GetVcName = AllVcName[i];
-            let GetConfig = this.Configs[GetVcName];
-            EachFunc(GetConfig, GetVcName);
         }
     }
     //#endregion
@@ -202,8 +244,7 @@ class VcController {
         if (_VcName != null)
             AllVcName = [_VcName];
 
-        for (let i = 0; i < AllVcName.length; i++) {
-            let VcName = AllVcName[i];
+        AllVcName.forEach(VcName => {
             let GetConfig = this.Configs[VcName];
 
             let Api = GetConfig.Api;
@@ -211,135 +252,121 @@ class VcController {
 
             let Bind = GetConfig.Bind;
             this._ClearConfig_Bind(Bind);
-        }
+        });
         return this;
     }
     _ClearConfig_Api(VcName, Api) {
-        let AllApiKey = Object.keys(Api);
-        let ApiProp = ['Url', 'MethodType'];
-        for (let i = 0; i < AllApiKey.length; i++) {
-            let ApiKey = AllApiKey[i];
-            let ApiContent = Api[ApiKey];
-
-            let ContentKeys = Object.keys(ApiContent);
-            for (let j = 0; j < ContentKeys.length; j++) {
-                let ContentKey = ContentKeys[j];
-                if (ApiProp.includes(ContentKey))
-                    continue;
-
-                if (ContentKey == 'Bind') {
-                    let GetBind = ApiContent[ContentKey];
-                    let AddBind = {};
-                    let BindType = typeof GetBind;
-                    switch (BindType) {
-                        case 'object':
-                            AddBind[ApiKey] = {
-                                ...GetBind
-                            };
-                            break;
-                        case 'string':
-                            AddBind[ApiKey] = {
-                                '.': GetBind
-                            };
-                            break;
-                        default:
-                            throw new Error('bind set type error');
-                    }
-                    delete ApiContent[ContentKey];
-                    this.AddVc_Config_Bind(VcName, AddBind);
-                    continue;
-                }
+        this._ForEachKeyValue(Api, (ApiKey, ApiContent) => {
+            this._ForEachKeyValue(ApiContent, (ContentKey, Item) => {
+                if (this.ApiProp.includes(ContentKey))
+                    return;
                 delete ApiContent[ContentKey];
-            }
-        }
+                if (ContentKey == 'Bind') {
+                    let GetBind = Item;
+                    let AddBind = {};
+                    if (typeof GetBind != 'object')
+                        this._Throw('bind set type error');
+
+                    AddBind[ApiKey] = {
+                        ...GetBind
+                    };
+                    this.AddVc_Config_Bind(VcName, AddBind);
+                }
+            })
+        });
         return Api;
     }
     _ClearConfig_Bind(Bind) {
-        let AllStoreKey = Object.keys(Bind);
-        for (let i = 0; i < AllStoreKey.length; i++) {
-            let StoreKey = AllStoreKey[i];
+        this._ForEachKeyValue(Bind, StoreKey => {
             this._CheckConfig_Bind(Bind, StoreKey);
-        }
+        })
         return Bind;
     }
     _CheckConfig_Bind(Bind, StoreKey) {
         let StoreBind = Bind[StoreKey];
-        let AllKeys = Object.keys(StoreBind);
         let ClearCommands = [];
-        for (let i = 0; i < AllKeys.length; i++) {
-            let OrgLeftCommand = AllKeys[i];
+        this._ForEachKeyValue(StoreBind, (OrgLeftCommand, RightCommand) => {
             let LeftCommand = OrgLeftCommand;
             let LeftCommandInfo = this._CheckRequired_LeftCommandInfo(LeftCommand);
             LeftCommand = LeftCommandInfo.ConvertCommand;
 
-            let RightCommand = StoreBind[OrgLeftCommand];
-
-            let RightCommandInfos = [];
-            if (LeftCommandInfo.CommandName == 'target')
-                RightCommandInfos = this._AnalyzeCommandInfos_MainTarget(RightCommand);
-            else
-                RightCommandInfos = this._AnalyzeCommandInfos_MainMode(RightCommand);
-
-            let TotalCommandInfo = this._CheckRequired_RightCommandInfos(LeftCommandInfo, RightCommandInfos);
+            let RightCommandInfos = this._Analyze_CommandInfos_ConvertObject(RightCommand);
+            let TotalCommandInfo = this._CheckRequired_RightCommandInfos(LeftCommandInfo, RightCommandInfos, StoreKey);
             ClearCommands.splice(ClearCommands.length, 0, ...TotalCommandInfo);
-        }
+        });
 
         Bind[StoreKey] = {};
         StoreBind = Bind[StoreKey];
         for (let i = 0; i < ClearCommands.length; i++) {
             let Command = ClearCommands[i];
-            let Target = Command['target'];
+            let GetColumn = Command['column'];
 
-            if (Target in StoreBind)
-                throw new Error(`target「${Target}」is already set`);
-
-            StoreBind[Target] = Command;
+            let SetBind = {};
+            this.CommandNameProp.forEach(Item => {
+                if (Item in Command)
+                    SetBind[Item] = Command[Item];
+            });
+            if (GetColumn in StoreBind == false) {
+                StoreBind[GetColumn] = SetBind;
+            }
+            else {
+                if (Array.isArray(StoreBind))
+                    StoreBind.push(SetBind);
+                else {
+                    let OrgBind = StoreBind[GetColumn];
+                    StoreBind[GetColumn] = [OrgBind, SetBind];
+                }
+            }
         }
-
     }
 
     _CheckRequired_LeftCommandInfo(LeftCommand) {
-        if (!LeftCommand.includes(':'))
-            LeftCommand = `t:${LeftCommand}`;
 
         let CommandInfo = this._Analyze_CommandInfo(LeftCommand);
         switch (CommandInfo.CommandName) {
-            case 'target':
-            case 'mode':
+            case 'column':
                 break;
             default:
-                throw new Error(`error CommandName for LeftCommand of「${CommandInfo.Command}」`);
+                this._Throw(`error CommandName for LeftCommand of「${CommandInfo.Command}」`)
         }
 
         return CommandInfo;
     }
-    _CheckRequired_RightCommandInfos(LeftCommandInfo, RightCommandInfos) {
+    _CheckRequired_RightCommandInfos(LeftCommandInfo, RightCommandInfos, StoreKey) {
 
         let TotalCommandInfo = [];
         for (let i = 0; i < RightCommandInfos.length; i++) {
             let CommandInfo = RightCommandInfos[i];
             CommandInfo[LeftCommandInfo['CommandName']] = LeftCommandInfo['CommandValue'];
-            let InfoResult = this._CheckRequired_CommandInfo(CommandInfo);
+            let InfoResult = this._CheckRequired_CommandInfo(CommandInfo, StoreKey);
             TotalCommandInfo.push(InfoResult);
         }
 
         return TotalCommandInfo;
     }
-    _CheckRequired_CommandInfo(CommandInfo) {
+    _CheckRequired_CommandInfo(CommandInfo, StoreKey) {
 
-        let TryGetTarget = CommandInfo['target'];
-        let TryGetColumn = CommandInfo['column'];
-        CommandInfo['target'] = TryGetTarget ?? TryGetColumn;
-        CommandInfo['column'] = TryGetColumn ?? TryGetTarget;
+        if (CommandInfo['mode'] == 'select' || CommandInfo['mode'] == 'for') {
+            if (CommandInfo['from'] == null) {
+                CommandInfo['from'] = StoreKey;
+            }
+        }
 
-        if ('target' in CommandInfo === false)
-            throw new Error('the「target、column」command is required, at least one of the param needs to be set');
+        if (CommandInfo['mode'] == 'select') {
+            if (CommandInfo['to'] == null) {
+                CommandInfo['to'] = CommandInfo['column']
+            }
+        }
+
+        if (CommandInfo['from'] == null)
+            CommandInfo['from'] = CommandInfo['column'];
 
         if ('column' in CommandInfo === false)
-            throw new Error('the「target、column」command is required, at least one of the param needs to be set');
+            this._Throw('「column」command is required, at least one of the param needs to be set')
 
         if ('mode' in CommandInfo === false)
             CommandInfo['mode'] = 'text';
+
         this._CheckRequired_Mode(CommandInfo['mode']);
 
         if ('option' in CommandInfo && CommandInfo['mode'] != 'select')
@@ -368,15 +395,16 @@ class VcController {
 
     _Analyze_CommandInfo(Command) {
 
-        if (!Command.includes(':'))
-            throw new Error(`command not contains「:」of「${Command}」`)
+        let CheckCommand = Command;
+        if (!CheckCommand.includes(':'))
+            CheckCommand = `column:${CheckCommand}`;
 
-        let CommandArray = Command
+        let CommandArray = CheckCommand
             .replaceAll(' ', '')
             .split(':');
 
         if (CommandArray.length > 2)
-            throw new Error(`_Analyze_CommandInfo() only can analyze single command of「${Command}」`);
+            this._Throw(`_Analyze_CommandInfo() only can analyze single command of「${Command}」`);
 
         let CommandName = this._Analyze_CommandName(CommandArray[0]);
         let CommandValue = CommandArray[1];
@@ -392,9 +420,13 @@ class VcController {
     }
     _Analyze_CommandName(CommandName) {
         switch (CommandName.toLowerCase()) {
-            case 'target':
-            case 't':
-                CommandName = 'target';
+            case 'from':
+            case 'f':
+                CommandName = 'from';
+                break;
+
+            case 'to':
+                CommandName = 'to';
                 break;
 
             case 'mode':
@@ -404,69 +436,64 @@ class VcController {
 
             case 'column':
             case 'col':
-            case 'c':
                 CommandName = 'column';
+                break;
+
+            //#region Select
+            case 'select':
+            case 'sel':
+                CommandName = 'select';
                 break;
 
             case 'option':
             case 'opt':
-            case 'o':
                 CommandName = 'option';
                 break;
 
             case 'value':
-            case 'v':
+            case 'val':
                 CommandName = 'value';
                 break;
 
             case 'display':
-            case 'd':
+            case 'dis':
                 CommandName = 'display';
                 break;
+            //#endregion
+
             default:
                 throw new Error(`error CommandName of「${CommandName}」`);
         }
         return CommandName;
     }
-    _AnalyzeCommandInfos_MainTarget(RightCommand) {
+    _Analyze_CommandInfos_ConvertObject(RightCommand) {
 
-        RightCommand = this._AnalyzeCommandInfos_ConvertString(RightCommand);
-        if (RightCommand.includes('[') || RightCommand.includes(']'))
-            throw new Error(`when LeftCommand is MainTraget mode, RightCommand can't split group of「${RightCommand}」`);
-
-        let CommandArray = RightCommand
-            .replaceAll(' ', '')
-            .split(',');
-
-        let CommandInfo = {};
-        for (let i = 0; i < CommandArray.length; i++) {
-            let GetCommand = CommandArray[i];
-            if (!GetCommand.includes(':'))
-                GetCommand = `c:${GetCommand}`;
-
-            let GetInfo = this._Analyze_CommandInfo(GetCommand);
-            CommandInfo[GetInfo.CommandName] = GetInfo.CommandValue;
+        let ParamGroups = [];
+        if (Array.isArray(RightCommand)) {
+            RightCommand.forEach(Item => {
+                ParamGroups.push(this._AnalyzeCommandInfos_ConvertString(Item));
+            });
         }
-
-        let CommandInfos = [CommandInfo];
-        return CommandInfos;
-    }
-    _AnalyzeCommandInfos_MainMode(RightCommand) {
-        RightCommand = this._AnalyzeCommandInfos_ConvertString(RightCommand);
-        let ParamGroups = RightCommand
-            .replaceAll(' ', '')
-            .split(/[\[\]]/);
+        else {
+            RightCommand = this._AnalyzeCommandInfos_ConvertString(RightCommand);
+            ParamGroups = RightCommand
+                .replaceAll(' ', '')
+                .split(/[\[\]]/);
+        }
 
         let CommandInfos = [];
         for (let i = 0; i < ParamGroups.length; i++) {
             let Group = ParamGroups[i];
-            let CommandArray = Group.split(',');
+
+            let CommandArray = Group
+                .split(';')
+                .filter(Item => !this._IsNullOrEmpty(Item));
 
             let SetCommandInfo = {};
             for (let j = 0; j < CommandArray.length; j++) {
                 let GetCommand = CommandArray[j];
                 if (!GetCommand.includes(':'))
-                    GetCommand = `t:${GetCommand}`;
+                    this._Throw('CommandName is a required parameter in CommandLine mode.');
 
                 let GetInfo = this._Analyze_CommandInfo(GetCommand);
                 SetCommandInfo[GetInfo.CommandName] = GetInfo.CommandValue;
@@ -488,7 +515,7 @@ class VcController {
                 let Value = RightCommand[Key];
                 CommandArray.push(`${Key}:${Value}`);
             }
-            let CommandString = CommandArray.join(',');
+            let CommandString = CommandArray.join(';');
             return CommandString;
         }
 
