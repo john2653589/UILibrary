@@ -1,6 +1,5 @@
 ﻿
-$(document).ready(async () => {
-
+Loaded(() => {
     let ApiGroup = Api.ComponentTest;
     let Url = Api.ExportData.ExportData;
 
@@ -15,7 +14,7 @@ $(document).ready(async () => {
                 Type: 'POST',
                 Bind: {
                     GetSelect: 'm:select; opt:GetOption; dis:Dis; val:Val; to:AAA',
-                    ForCol: ['m:text; f:Dis;', 'm:for;'],
+                    ForCol: ['m:text; f:Item.Dis;', 'm:for;'],
                 },
             },
         },
@@ -32,12 +31,19 @@ $(document).ready(async () => {
     };
 
     Vc
-        //.UseQueryWhere_VcName()
+        .UseQueryWhere_VcName()
         .AddVc_Config(VcConfig)
+        .AddVc_Config({
+            VcName: 'TestComponent2',
+            AutoBind: {
+                Default2: [
+                    'm:text',
+                    'm:input',
+                ],
+            }
+        })
         .Init();
 
-    //.AddVq_AutoBind_Text('[vc-col]', 'vc-col', 'Default')
-    //.AddVq_AutoBind_Input('[vc-col]', 'vc-col', 'Default')
     Model
         .UpdateStore(
             [{
@@ -58,6 +64,13 @@ $(document).ready(async () => {
             GetDateTime: '2023/04/29 23:59',
             GetSelect: 3,
         })
+        .UpdateStore({
+            TestBind: '1',
+            TestBind2: '2',
+            Test: '3',
+            Bind3: '4',
+            BindInput: 5,
+        }, 'Default2')
         .Init();
 
     //#region sample

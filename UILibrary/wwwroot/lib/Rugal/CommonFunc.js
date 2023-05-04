@@ -1,4 +1,7 @@
-﻿
+﻿/**
+ *  CommonFunc.js v1.0.1
+ *  From Rugal Tu
+ * */
 class CommonFunc {
 
     constructor() {
@@ -6,6 +9,7 @@ class CommonFunc {
     }
 
     _ForEachKeyValue(Param, Func = (Key, Value) => { }) {
+        
         let AllKey = Object.keys(Param);
         for (let i = 0; i < AllKey.length; i++) {
             let Key = AllKey[i];
@@ -26,4 +30,5 @@ class CommonFunc {
             (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
         );
     }
+    _IsString(Data) { return typeof Data === 'string'; }
 }

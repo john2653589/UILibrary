@@ -1,4 +1,8 @@
-﻿
+﻿/**
+ *  DomEditor.js v1.0.1
+ *  From Rugal Tu
+ * */
+
 class DomEditor {
 
     constructor(_Doms = null) {
@@ -31,7 +35,7 @@ class DomEditor {
     }
 
     //#region Instance Controller
-    CreateWithElement(Element = []) {
+    NewWithElement(Element = []) {
         if (!Array.isArray(Element))
             Element = [Element];
 
@@ -116,8 +120,11 @@ class DomEditor {
     _QueryString_Id(DomId) {
         return this._QueryString_Attr('id', DomId);
     }
-    _QueryString_Attr(AttrName, AttrValue) {
-        return `[${AttrName}="${AttrValue}"]`;
+    _QueryString_Attr(AttrName, AttrValue = null) {
+        let WhereQuery = `[${AttrName}]`;
+        if (AttrValue != null)
+            WhereQuery = `[${AttrName}="${AttrValue}"]`;
+        return WhereQuery;
     }
     _NeedQuery() {
         if (this.QueryParams.length > 0)

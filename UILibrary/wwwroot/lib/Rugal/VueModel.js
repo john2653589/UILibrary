@@ -1,7 +1,7 @@
 ﻿/**
- *  VueModel.js v2.0.0
+ *  VueModel.js v2.0.1
  *  From Rugal Tu
- *  Based on Vue3
+ *  Based on Vue3, CommonFunc.js, DomEditor.js
  * */
 const { createApp } = Vue
 const Dom = new DomEditor();
@@ -129,41 +129,6 @@ class VueModel extends CommonFunc {
     }
     //#endregion
 
-    //#region Add Function Format
-    AddV_Function(FuncKey, Func) {
-        this.VueOption.methods[FuncKey] = Func;
-        return this;
-    }
-    AddV_Format(DomId, FuncKey, ...Params) {
-        this.AddVdom_Format(this.Dom.WithId(DomId), FuncKey, Params ?? DomId);
-        return this;
-    }
-    AddVq_Format(QueryString, FuncKey, ...Params) {
-        this.AddVdom_Format(this.Dom.WithCustom(QueryString), FuncKey, Params);
-        return this;
-    }
-    AddVdom_Format(_Dom, FuncKey, ...Params) {
-        Params = Params.join(',');
-        let GetDom = this._BaseCheck_DomEditor(_Dom);
-        GetDom.SetAttr(':formatter', `${FuncKey}(${Params})`);
-        return this;
-    }
-    //#endregion
-
-    //#region Base Format Function
-    AddBase_Format_Date() {
-        this.AddV_Function(this.FuncKey_FormatDate, (DateValue, StoreKey) => {
-            let SetValue = DateValue;
-            if (DateValue != undefined) {
-                SetValue = DateValue.replaceAll('/', '-').replaceAll('T', ' ');
-            }
-            if (DateValue != SetValue)
-                this.UpdateStore(SetValue, StoreKey);
-        })
-        return this;
-    }
-    //#endregion
-
     //#region Select
     AddV_Select(Option = {
         SelectId: null,
@@ -215,16 +180,68 @@ class VueModel extends CommonFunc {
     }
     //#endregion
 
+    //#region
+    AddV_For(DomId, StoreKey) {
+        this.AddVdom_For(this.Dom.WithId(DomId), StoreKey ?? DomId);
+        return this;
+    }
+    AddVq_For(QueryString, StoreKey) {
+        this.AddVdom_For(this.Dom.WithCustom(QueryString), StoreKey);
+        return this;
+    }
+    AddVdom_For(Dom, StoreKey) {
+        this.AddStore(StoreKey, []);
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+        GetDom.SetAttr('v-for', `(Item, Idx) in ${StoreKey}`);
+        return this;
+    }
+    //#endregion
+
+    //#region Add Function Format
+    AddV_Function(FuncKey, Func) {
+        this.VueOption.methods[FuncKey] = Func;
+        return this;
+    }
+    AddV_Format(DomId, FuncKey, ...Params) {
+        this.AddVdom_Format(this.Dom.WithId(DomId), FuncKey, Params ?? DomId);
+        return this;
+    }
+    AddVq_Format(QueryString, FuncKey, ...Params) {
+        this.AddVdom_Format(this.Dom.WithCustom(QueryString), FuncKey, Params);
+        return this;
+    }
+    AddVdom_Format(_Dom, FuncKey, ...Params) {
+        Params = Params.join(',');
+        let GetDom = this._BaseCheck_DomEditor(_Dom);
+        GetDom.SetAttr(':formatter', `${FuncKey}(${Params})`);
+        return this;
+    }
+    //#endregion
+
+    //#region Base Format Function
+    AddBase_Format_Date() {
+        this.AddV_Function(this.FuncKey_FormatDate, (DateValue, StoreKey) => {
+            let SetValue = DateValue;
+            if (DateValue != undefined) {
+                SetValue = DateValue.replaceAll('/', '-').replaceAll('T', ' ');
+            }
+            if (DateValue != SetValue)
+                this.UpdateStore(SetValue, StoreKey);
+        })
+        return this;
+    }
+    //#endregion
+
     //#endregion
 
     //#region AutoBind
 
     //#region AutoBind Text
-    AddVq_AutoBind_Text(QueryString, AttrName, StoreKey) {
-        this.AddVdom_AutoBind_Text(this.Dom.WithCustom(QueryString), AttrName, StoreKey);
+    AddVq_AutoBind_Text(QueryString, BindFrom, StoreKey) {
+        this.AddVdom_AutoBind_Text(this.Dom.WithCustom(QueryString), BindFrom, StoreKey);
         return this;
     }
-    AddVdom_AutoBind_Text(Dom, AttrName, StoreKey) {
+    AddVdom_AutoBind_Text(Dom, BindFrom, StoreKey) {
         StoreKey = StoreKey ?? this.DefaultStoreKey;
         let GetDom = this._BaseCheck_DomEditor(Dom);
         GetDom.ForEach(Item => {
@@ -232,20 +249,22 @@ class VueModel extends CommonFunc {
             if (!this.AcceptAutoBindType_Text.includes(TagName))
                 return;
 
-            let AttrValue = GetDom.GetElement_Attr(Item, AttrName);
-            let SetStoreKey = `${StoreKey}.${AttrValue}`;
-            this.AddVdom_Text(GetDom.CreateWithElement(Item), SetStoreKey);
+            let SetStoreKey = this._Analyze_AutoBind_From(Item, BindFrom);
+            if (this._IsClearSotreKey(SetStoreKey))
+                SetStoreKey = `${StoreKey}.${SetStoreKey}`;
+
+            this.AddVdom_Text(GetDom.NewWithElement(Item), SetStoreKey);
         });
         return this;
     }
     //#endregion
 
     //#region AutoBind Input
-    AddVq_AutoBind_Input(QueryString, AttrName, StoreKey) {
-        this.AddVdom_AutoBind_Input(this.Dom.WithCustom(QueryString), AttrName, StoreKey);
+    AddVq_AutoBind_Input(QueryString, BindFrom, StoreKey) {
+        this.AddVdom_AutoBind_Input(this.Dom.WithCustom(QueryString), BindFrom, StoreKey);
         return this;
     }
-    AddVdom_AutoBind_Input(Dom, AttrName, StoreKey) {
+    AddVdom_AutoBind_Input(Dom, BindFrom, StoreKey) {
         StoreKey = StoreKey ?? this.DefaultStoreKey;
         let GetDom = this._BaseCheck_DomEditor(Dom);
         GetDom.ForEach(Item => {
@@ -253,11 +272,35 @@ class VueModel extends CommonFunc {
             if (!this.AcceptAutoBindType_Input.includes(TagName))
                 return;
 
-            let AttrValue = GetDom.GetElement_Attr(Item, AttrName);
-            let SetStoreKey = `${StoreKey}.${AttrValue}`;
-            this.AddVdom_Input(GetDom.CreateWithElement(Item), SetStoreKey);
+            let SetStoreKey = this._Analyze_AutoBind_From(Item, BindFrom);
+            if (this._IsClearSotreKey(SetStoreKey))
+                SetStoreKey = `${StoreKey}.${SetStoreKey}`;
+            this.AddVdom_Input(GetDom.NewWithElement(Item), SetStoreKey);
         });
         return this;
+    }
+    //#endregion
+
+    //#region Common Func
+    _Analyze_AutoBind_From(Element, BindFrom) {
+
+        let MatchChar = /(\{.+?\})/;
+        let FromArray = BindFrom
+            .split(MatchChar)
+            .filter(Item => !this._IsNullOrEmpty(Item));
+
+        let FormatArray = FromArray
+            .map(Item => {
+                if (Item.match(MatchChar) == null)
+                    return Item;
+
+                let GetAttrName = Item.replace(/{(.+?)}/g, '$1');
+                let AttrValue = Dom.GetElement_Attr(Element, GetAttrName);
+                return AttrValue;
+            });
+
+        let ClearBind = FormatArray.join('');
+        return ClearBind;
     }
     //#endregion
 
@@ -450,9 +493,7 @@ class VueModel extends CommonFunc {
 
         if (ParamArray.length == 1) {
             let GetKey = ParamArray[0];
-            let SkipChar = ['.', '(', ')'];
-            let FindAny = SkipChar.filter(Item => GetKey.includes(Item));
-            if (FindAny.length == 0)
+            if (this._IsClearSotreKey(GetKey))
                 ParamArray = [FirstKey, ...ParamArray];
         }
 
@@ -467,7 +508,11 @@ class VueModel extends CommonFunc {
         let BindStoreKey = this._BaseReCombine('Item', Params);
         return BindStoreKey;
     }
-    _IsString(Data) { return typeof Data === 'string'; }
+    _IsClearSotreKey(StoreKey) {
+        let SkipChar = ['.', '(', ')'];
+        let IsClear = SkipChar.filter(Item => StoreKey.includes(Item)).length == 0;
+        return IsClear;
+    }
     _TryToJson(Data) {
         if (typeof Data === 'object')
             return Data;
