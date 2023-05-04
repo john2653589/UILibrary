@@ -1,5 +1,5 @@
 ﻿/**
- *  VcController.js v1.0.1
+ *  VcController.js v1.0.2
  *  From Rugal Tu
  *  Based on VueModel.js
  * */
@@ -50,19 +50,22 @@ class VcController extends CommonFunc {
     AddVc_Config_Api(_Api) {
         let VcName = _Config['VcName'] ?? this.DefaultVcName;
         this._Create_Config(VcName);
-        this._DeepObjectExtend(this.Configs[VcName].Api, _Api);
+        this._DeepObjectExtend(this.Configs[VcName]['Api'], _Api);
         this._ClearConfig(VcName);
         return this;
     }
 
     AddVc_Config_Bind(VcName, _Bind) {
         this._Create_Config(VcName);
-        this._DeepObjectExtend(this.Configs[VcName].Bind, _Bind);
+        this._DeepObjectExtend(this.Configs[VcName]['Bind'], _Bind);
         this._ClearConfig(VcName);
         return this;
     }
 
     AddVc_Config_AutoBind(VcName, _AutoBind) {
+        this._Create_Config(VcName);
+        this._DeepObjectExtend(this.Configs[VcName]['AutoBind'], _AutoBind);
+        this._ClearConfig(VcName);
         return this;
     }
     //#endregion
@@ -301,16 +304,25 @@ class VcController extends CommonFunc {
 
                 delete ApiContent[ContentKey];
                 if (ContentKey == 'Bind') {
-                    let GetBind = Item;
+                    if (!this._HasAnyKeys(Item))
+                        return;
                     let AddBind = {};
-                    if (typeof GetBind != 'object')
+                    if (typeof Item != 'object')
                         this._Throw('bind set type error');
 
                     AddBind[ApiKey] = {
-                        ...GetBind
+                        ...Item
                     };
                     this.AddVc_Config_Bind(VcName, AddBind);
                 }
+                else if (ContentKey == 'AutoBind') {
+                    if (!this._HasAnyKeys(Item))
+                        return;
+                    let AddAutoBind = {};
+                    AddAutoBind[ApiKey] = Item;
+                    this.AddVc_Config_AutoBind(VcName, AddAutoBind);
+                }
+
             })
         });
         return Api;
@@ -564,6 +576,8 @@ class VcController extends CommonFunc {
         return CommandInfos;
     }
     _Analyze_AutoBindInfo(Command) {
+        Command = this._Convert_CommandInfo_CommandString(Command);
+
         let CommandArray = Command
             .replaceAll(' ', '')
             .split(';')

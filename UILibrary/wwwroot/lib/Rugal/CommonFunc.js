@@ -1,5 +1,5 @@
 ﻿/**
- *  CommonFunc.js v1.0.1
+ *  CommonFunc.js v1.0.2
  *  From Rugal Tu
  * */
 class CommonFunc {
@@ -8,8 +8,13 @@ class CommonFunc {
         this.Id = this._GenerateId();
     }
 
+    _HasAnyKeys(Obj) {
+        let AllKey = Object.keys(Obj);
+        let IsHas = AllKey.length > 0;
+        return IsHas;
+    }
+
     _ForEachKeyValue(Param, Func = (Key, Value) => { }) {
-        
         let AllKey = Object.keys(Param);
         for (let i = 0; i < AllKey.length; i++) {
             let Key = AllKey[i];

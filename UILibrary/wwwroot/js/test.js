@@ -12,21 +12,25 @@ Loaded(() => {
                 Url: ApiGroup.TestPost,
                 //Method Type
                 Type: 'POST',
-                Bind: {
-                    GetSelect: 'm:select; opt:GetOption; dis:Dis; val:Val; to:AAA',
-                    ForCol: ['m:text; f:Item.Dis;', 'm:for;'],
-                },
+                //Bind: {
+                //    GetSelect: 'm:select; opt:GetOption; dis:Dis; val:Val; to:AAA',
+                //    ForCol: ['m:text; f:Item.Dis;', 'm:for;'],
+                //},
             },
+            Default: {
+                Url: ApiGroup.TestPost,
+                Type: 'POST',
+                AutoBind: 'm:text',
+            }
+
         },
         Bind: {
-            //StoreKey
-            Default: {
-                //vc-col="Title"
-                Title: 'f:Title',
-                Content: 'f:Content',
-                UserInput: 'm:input',
-                GetDateTime: 'm:input',
-            }
+            //Default: {
+                //Title: 'm:text;',
+                //Content: 'f:Content',
+                //UserInput: 'm:input',
+                //GetDateTime: 'm:input',
+            //}
         },
     };
 
@@ -36,10 +40,10 @@ Loaded(() => {
         .AddVc_Config({
             VcName: 'TestComponent2',
             AutoBind: {
-                Default2: [
-                    'm:text',
-                    'm:input',
-                ],
+                //Default2: [
+                //    'm:text',
+                //    'm:input',
+                //],
             }
         })
         .Init();
