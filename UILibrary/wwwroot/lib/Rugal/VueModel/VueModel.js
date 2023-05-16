@@ -35,6 +35,8 @@ class VueModel extends CommonFunc {
     }
 
     get Domain() {
+        if (this._Domain == null)
+            return null;
         return this._GetClearDomain(this._Domain);
     }
     set Domain(_Domain) {
@@ -180,14 +182,14 @@ class VueModel extends CommonFunc {
                     let Display = this._ReCombineItemKey(Option.Display);
                     let Value = this._ReCombineItemKey(Option.Value);
 
-                    SelectDom.NewWithElement(Item.children)
+                    this.Dom.NewWithElement(Item.children)
                         .WhereCustom(Option.OptionQuery)
                         .SetAttr('v-text', Display)
                         .SetAttr(':value', Value)
                         .SetAttr('v-for', `(Item, Idx) in ${Option.From}`);
                 }
                 let StoreKey = this._ReCombineStoreKey(Option.To);
-                SelectDom.SetElement_Attr(Item, 'v-model', StoreKey);
+                this.Dom.SetElement_Attr(Item, 'v-model', StoreKey);
             })
         return this;
     }
@@ -490,7 +492,14 @@ class VueModel extends CommonFunc {
     }
     _BaseSetStoreObject(SetData, StoreKey, FindStore) {
         if (FindStore[StoreKey] == null || typeof SetData != 'object' || Array.isArray(SetData)) {
-            FindStore[StoreKey] = SetData;
+            if (!Array.isArray(SetData))
+                FindStore[StoreKey] = SetData;
+            else {
+                if (!Array.isArray(FindStore[StoreKey]))
+                    FindStore[StoreKey] = [];
+                FindStore[StoreKey].splice(0, FindStore[StoreKey].length);
+                FindStore[StoreKey].push(...SetData);
+            }
         }
         else {
             this._ForEachKeyValue(SetData, (Key, Value) => {
@@ -532,7 +541,7 @@ class VueModel extends CommonFunc {
             };
         }
         Url = this._GetClearUrl(Url);
-        if (this.Domain != null && Url.includes('http')) {
+        if (this.Domain != null && !Url.includes('http')) {
             Url = `${this.Domain}/${Url}`;
         }
 
@@ -651,14 +660,15 @@ class VueModel extends CommonFunc {
         return _StoreKey;
     }
     _GetClearDomain(_Domain) {
-        let ClearDomain = _Domain.replace(_Domain, /\/+$/, '');
+        let ClearDomain = _Domain.replace(/\/+$/, '');
         return ClearDomain;
     }
     _GetClearUrl(_Url) {
-        let ClearUrl = _Url.replace(_Domain, /^\/+/, '');
+        let ClearUrl = _Url.replace(/^\/+/, '');
         return ClearUrl;
     }
     //#endregion
 }
 const Model = new VueModel()
-    .AddBase_Format_Date();
+    .AddBase_Format_Date()
+    .WithDomain(Domain);
