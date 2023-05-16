@@ -9,6 +9,6 @@ const Api = {
 
     ExportData: {
         /** 測試 */
-        ExportData: 'api/Test/Test/ASDSADSADSAD'
+        ExportData: 'api/Test/Test/ASDSADSADSAD',
     }
 }

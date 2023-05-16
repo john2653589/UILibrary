@@ -1,5 +1,5 @@
 ﻿/**
- *  VueModel.js v2.0.1
+ *  VueModel.js v2.0.3
  *  From Rugal Tu
  *  Based on Vue3, CommonFunc.js, DomEditor.js
  * */
@@ -24,12 +24,21 @@ class VueModel extends CommonFunc {
 
         this.AcceptAutoBindType_Input = ['input', 'textarea'];
         this.AcceptAutoBindType_Text = ['div', 'label', 'span'];
+        this.AcceptAutoBindType_Select = ['select'];
         this.FuncKey_FormatDate = 'Format_Date';
+        this._Domain = null;
     }
 
     //#region Property
     get Dom() {
         return new DomEditor();
+    }
+
+    get Domain() {
+        return this._GetClearDomain(this._Domain);
+    }
+    set Domain(_Domain) {
+        this._Domain = this._GetClearDomain(_Domain);
     }
     //#endregion
 
@@ -73,6 +82,10 @@ class VueModel extends CommonFunc {
     }
     WithVueOption(_VueOption = {}) {
         this.VueOption = _VueOption;
+        return this;
+    }
+    WithDomain(_Domain) {
+        this.Domain = _Domain;
         return this;
     }
     //#endregion
@@ -141,7 +154,7 @@ class VueModel extends CommonFunc {
         let SelectQuery = this.Dom._QueryString_Id(Option.SelectId);
         let OptionQuery = this.Dom._QueryString_Id(Option.OptionId);
 
-        this.AddVdom_Select({
+        this.AddVq_Select({
             SelectQuery,
             OptionQuery,
             From: Option.From,
@@ -167,20 +180,38 @@ class VueModel extends CommonFunc {
                     let Display = this._ReCombineItemKey(Option.Display);
                     let Value = this._ReCombineItemKey(Option.Value);
 
-                    let OptionDom = new DomEditor(Item.children)
+                    SelectDom.NewWithElement(Item.children)
                         .WhereCustom(Option.OptionQuery)
                         .SetAttr('v-text', Display)
                         .SetAttr(':value', Value)
                         .SetAttr('v-for', `(Item, Idx) in ${Option.From}`);
                 }
                 let StoreKey = this._ReCombineStoreKey(Option.To);
-                new DomEditor(Item).SetAttr('v-model', StoreKey);
+                SelectDom.SetElement_Attr(Item, 'v-model', StoreKey);
             })
         return this;
     }
     //#endregion
 
-    //#region
+    //#region Select Html
+    AddV_SelectHtml(SelectId, To) {
+        this.AddVdom_SelectHtml(this.Dom.WithId(SelectId), To ?? SelectId);
+        return this;
+    }
+    AddVq_SelectHtml(QueryString, To) {
+        this.AddVdom_SelectHtml(this.Dom.WithCustom(QueryString), To);
+        return this;
+    }
+    AddVdom_SelectHtml(Dom, To) {
+        To = this._ReCombineStoreKey(To);
+        this.AddStore(To, null);
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+        GetDom.SetAttr('v-model', To);
+        return this;
+    }
+    //#endregion
+
+    //#region For
     AddV_For(DomId, StoreKey) {
         this.AddVdom_For(this.Dom.WithId(DomId), StoreKey ?? DomId);
         return this;
@@ -232,6 +263,68 @@ class VueModel extends CommonFunc {
     }
     //#endregion
 
+    //#region On Event
+    AddV_On() {
+
+    }
+    AddVc_On() {
+
+    }
+    AddVq_On() {
+
+    }
+    AddVdom_On() {
+
+    }
+    //#endregion
+
+    //#region Bind
+    AddV_Bind(DomId, BindKey, BindValue) {
+        this.AddVdom_Bind(this.Dom.WithId(DomId), BindKey, BindValue);
+        return this;
+    }
+    AddVq_Bind(QueryString, BindKey, BindValue) {
+        this.AddVdom_Bind(this.Dom.WithCustom(QueryString), BindKey, BindValue);
+        return this;
+    }
+    AddVdom_Bind(Dom, BindKey, BindValue) {
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+        GetDom.SetAttr(`v-bind:${BindKey}`, BindValue);
+        return this;
+    }
+    //#endregion
+
+    //#region Click
+    AddV_Click(DomId, ClickFunc, FuncParam = null) {
+        this.AddVdom_Click(this.Dom.WithId(DomId), ClickFunc, FuncParam);
+        return this;
+    }
+    AddVq_Click(QueryString, ClickFunc, FuncParam = null) {
+        this.AddVdom_Click(this.Dom.WithCustom(QueryString), ClickFunc, FuncParam);
+        return this;
+    }
+    AddVcol_Click(ColName, ClickFunc, FuncParam = null) {
+        this.AddVdom_Click(this.Dom.WithAttr('vc-col', ColName), ClickFunc, FuncParam);
+        return this;
+    }
+    AddVdom_Click(Dom, ClickFunc, FuncParam = null) {
+        if (ClickFunc == null)
+            this._Throw('Click function cannot be null');
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+
+        let RandomFuncName = this._GenerateId().replaceAll('-', '');
+        let FuncName = `Func_${RandomFuncName}`;
+
+        this.AddV_Function(FuncName, ClickFunc);
+
+        FuncParam ??= '';
+        let SetFuncKey = `${FuncName}(${FuncParam})`;
+
+        GetDom.SetAttr(`v-on:click`, SetFuncKey);
+        return this;
+    }
+    //#endregion
+
     //#endregion
 
     //#region AutoBind
@@ -276,6 +369,28 @@ class VueModel extends CommonFunc {
             if (this._IsClearSotreKey(SetStoreKey))
                 SetStoreKey = `${StoreKey}.${SetStoreKey}`;
             this.AddVdom_Input(GetDom.NewWithElement(Item), SetStoreKey);
+        });
+        return this;
+    }
+    //#endregion
+
+    //#region AutoBind Select-Html
+    AddVq_AutoBind_SelectHtml(QueryString, BindFrom, StoreKey) {
+        this.AddVdom_AutoBind_SelectHtml(this.Dom.WithCustom(QueryString), BindFrom, StoreKey);
+        return this;
+    }
+    AddVdom_AutoBind_SelectHtml(Dom, BindFrom, StoreKey) {
+        StoreKey = StoreKey ?? this.DefaultStoreKey;
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+        GetDom.ForEach(Item => {
+            let TagName = Item.tagName.toLowerCase();
+            if (!this.AcceptAutoBindType_Select.includes(TagName))
+                return;
+
+            let SetStoreKey = this._Analyze_AutoBind_From(Item, BindFrom);
+            if (this._IsClearSotreKey(SetStoreKey))
+                SetStoreKey = `${StoreKey}.${SetStoreKey}`;
+            this.AddVdom_SelectHtml(GetDom.NewWithElement(Item), SetStoreKey);
         });
         return this;
     }
@@ -416,6 +531,10 @@ class VueModel extends CommonFunc {
                 'content-type': 'application/json'
             };
         }
+        Url = this._GetClearUrl(Url);
+        if (this.Domain != null && Url.includes('http')) {
+            Url = `${this.Domain}/${Url}`;
+        }
 
         fetch(Url, FetchParam)
             .then(async ApiRet => {
@@ -530,6 +649,14 @@ class VueModel extends CommonFunc {
     _TryGetStoreKey(_StoreKey) {
         _StoreKey ??= this.DefaultStoreKey;
         return _StoreKey;
+    }
+    _GetClearDomain(_Domain) {
+        let ClearDomain = _Domain.replace(_Domain, /\/+$/, '');
+        return ClearDomain;
+    }
+    _GetClearUrl(_Url) {
+        let ClearUrl = _Url.replace(_Domain, /^\/+/, '');
+        return ClearUrl;
     }
     //#endregion
 }

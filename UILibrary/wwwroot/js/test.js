@@ -1,4 +1,4 @@
-﻿
+﻿const s = 1;
 Loaded(() => {
     let ApiGroup = Api.ComponentTest;
     let Url = Api.ExportData.ExportData;
@@ -20,16 +20,16 @@ Loaded(() => {
             Default: {
                 Url: ApiGroup.TestPost,
                 Type: 'POST',
-                AutoBind: 'm:text',
+                AutoBind: ['m:text', 'm:select;'],
             }
 
         },
         Bind: {
             //Default: {
-                //Title: 'm:text;',
-                //Content: 'f:Content',
-                //UserInput: 'm:input',
-                //GetDateTime: 'm:input',
+            //Title: 'm:text;',
+            //Content: 'f:Content',
+            //UserInput: 'm:input',
+            //GetDateTime: 'm:input',
             //}
         },
     };
@@ -49,6 +49,9 @@ Loaded(() => {
         .Init();
 
     Model
+        .AddVcol_Click('BtnTest', (Idx) => {
+            alert(Idx);
+        })
         .UpdateStore(
             [{
                 Dis: '測試1',
@@ -67,6 +70,7 @@ Loaded(() => {
             UserInput: '123',
             GetDateTime: '2023/04/29 23:59',
             GetSelect: 3,
+            SelStatic: 4,
         })
         .UpdateStore({
             TestBind: '1',

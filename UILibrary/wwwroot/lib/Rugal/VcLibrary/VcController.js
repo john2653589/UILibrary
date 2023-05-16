@@ -1,5 +1,5 @@
 ﻿/**
- *  VcController.js v1.0.2
+ *  VcController.js v1.0.3
  *  From Rugal Tu
  *  Based on VueModel.js
  * */
@@ -30,7 +30,6 @@ class VcController extends CommonFunc {
     //#endregion
 
     //#region With Property
-
     With_VueModel(SetModel) {
         this.Model = SetModel;
         return this;
@@ -70,7 +69,7 @@ class VcController extends CommonFunc {
     }
     //#endregion
 
-    //#regin Query Setting
+    //#region Query Setting
     UseQueryWhere_VcName() {
         this.IsUseQueryWhere_VcName = true;
         return this;
@@ -205,8 +204,11 @@ class VcController extends CommonFunc {
             case 'input':
                 this.Model.AddVdom_AutoBind_Input(Doms, From, StoreKey);
                 break;
-        }
+            case 'select':
+                this.Model.AddVdom_AutoBind_SelectHtml(Doms, From, StoreKey);
+                break;
 
+        }
         return;
     }
 
@@ -256,6 +258,7 @@ class VcController extends CommonFunc {
 
     //#region Config Review
 
+    //#region Create And Clear
     _Create_Config(VcName) {
         if (this.Configs[VcName] == null)
             this.Configs[VcName] = {
@@ -401,7 +404,9 @@ class VcController extends CommonFunc {
 
         return AutoBind;
     }
+    //#endregion
 
+    //#region Check Required
     _CheckRequired_LeftCommandInfo(LeftCommandInfo) {
         switch (LeftCommandInfo.CommandName) {
             case 'column':
@@ -458,7 +463,9 @@ class VcController extends CommonFunc {
                 throw new Error(`the「${Mode}」mode is not allow`);
         }
     }
+    //#endregion
 
+    //#region Analyze Info
     _Analyze_CommandInfo(Command) {
 
         let CheckCommand = Command;
@@ -594,7 +601,9 @@ class VcController extends CommonFunc {
 
         return AutoBindInfo;
     }
+    //#endregion
 
+    //#region Convert
     _Convert_CommandInfo_CommandString(BindCommand) {
         if (typeof BindCommand === 'string')
             return BindCommand;
@@ -625,6 +634,8 @@ class VcController extends CommonFunc {
 
         return FullCommandInfos;
     }
+    //#endregion
+
     //#endregion
 
     //#region Doms Where
