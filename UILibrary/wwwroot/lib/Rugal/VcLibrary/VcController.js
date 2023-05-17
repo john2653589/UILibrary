@@ -1,5 +1,5 @@
 ﻿/**
- *  VcController.js v1.0.3
+ *  VcController.js v1.0.4
  *  From Rugal Tu
  *  Based on VueModel.js
  * */
@@ -84,16 +84,10 @@ class VcController extends CommonFunc {
     Init() {
         if (!this.IsConfigDone) {
             this._SetApi();
-            this._SetBind();
             this._SetAutoBind();
+            this._SetBind();
             this.IsConfigDone = true;
         }
-        return this;
-    }
-
-    ApiCall() {
-        this.Done();
-        this._CallApi();
         return this;
     }
     //#endregion
@@ -174,6 +168,9 @@ class VcController extends CommonFunc {
             case 'for':
                 this.Model.AddVdom_For(GetDoms, From);
                 break;
+            case 'file':
+                this.Model.AddVdom_File(GetDoms, To ?? Column);
+                break;
         }
     }
 
@@ -207,26 +204,13 @@ class VcController extends CommonFunc {
             case 'select':
                 this.Model.AddVdom_AutoBind_SelectHtml(Doms, From, StoreKey);
                 break;
+            case 'file':
+                Doms.WhereAttr('type', 'file');
+                this.Model.AddVdom_AutoBind_File(Doms);
+                break;
 
         }
         return;
-    }
-
-    _CallApi() {
-        let AllVcName = Object.keys(this.Configs);
-        for (let i = 0; i < AllVcName.length; i++) {
-            let VcName = AllVcName[i];
-            let GetConfig = this.Configs[VcName];
-            if (GetConfig.Api == null)
-                return;
-
-            let AllApiKey = Object.keys(GetConfig.Api);
-            for (let j = 0; j < AllApiKey.length; j++) {
-                let ApiKey = AllApiKey[j];
-                let ApiContent = GetConfig.Api[ApiKey];
-                this._VueModel_AddApi(ApiKey, ApiContent);
-            }
-        }
     }
     //#endregion
 
@@ -457,6 +441,7 @@ class VcController extends CommonFunc {
             case 'text':
             case 'select':
             case 'for':
+            case 'file':
                 break;
 
             default:

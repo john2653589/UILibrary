@@ -20,11 +20,17 @@ Loaded(() => {
             Default: {
                 Url: ApiGroup.TestPost,
                 Type: 'POST',
-                AutoBind: ['m:text', 'm:select;'],
+                AutoBind: ['m:text', 'm:select'],
+            },
+            TestUpload: {
+                Url: 'vosocc/api/InsaragGuide/TestUpload',
+                Type: 'POST',
             }
-
         },
         Bind: {
+            //FileDefault: {
+            //    AAA: 'm:file'
+            //}
             //Default: {
             //Title: 'm:text;',
             //Content: 'f:Content',
@@ -35,22 +41,37 @@ Loaded(() => {
     };
 
     Vc
-        .UseQueryWhere_VcName()
+        //.UseQueryWhere_VcName()
         .AddVc_Config(VcConfig)
         .AddVc_Config({
             VcName: 'TestComponent2',
             AutoBind: {
-                //Default2: [
-                //    'm:text',
-                //    'm:input',
-                //],
+                Default: [
+                    'm:text',
+                    'm:input',
+                ],
+                File: 'm:file',
+            },
+            Bind: {
+                File: {
+                    AAA: 'm:file; to:ABCS',
+                },
             }
         })
         .Init();
 
     Model
         .AddVcol_Click('BtnTest', (Idx) => {
-            alert(Idx);
+            Model.ApiCall_Form('TestUpload', {
+                Form: {
+                    Id: 1,
+                    Content: '123ASD',
+                },
+                File: {
+                    File: Model.FileStore['AAA'],
+                    File2: Model.FileStore['BBB'],
+                },
+            })
         })
         .UpdateStore(
             [{

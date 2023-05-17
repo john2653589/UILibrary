@@ -1,5 +1,5 @@
 ﻿/**
- *  VueModel.js v2.0.3
+ *  VueModel.js v2.0.4
  *  From Rugal Tu
  *  Based on Vue3, CommonFunc.js, DomEditor.js
  * */
@@ -12,6 +12,7 @@ class VueModel extends CommonFunc {
         super();
         this.Store = {};
         this.ApiStore = {};
+        this.FileStore = {};
         this.VueOption = {
             methods: {},
         };
@@ -22,9 +23,15 @@ class VueModel extends CommonFunc {
         this.VueProxy = null;
         this.IsInited = false;
 
-        this.AcceptAutoBindType_Input = ['input', 'textarea'];
-        this.AcceptAutoBindType_Text = ['div', 'label', 'span'];
-        this.AcceptAutoBindType_Select = ['select'];
+        this.AcceptAutoBindTag_Input = ['input', 'textarea'];
+        this.AcceptAutoBindTag_Text = ['div', 'label', 'span'];
+        this.AcceptAutoBindTag_Select = ['select'];
+        this.AcceptAutoBindTag_File = ['input'];
+
+        this.AcceptAutoBindType_File = ['file'];
+
+        this.ExceptAutoBindType_Input = ['file'];
+
         this.FuncKey_FormatDate = 'Format_Date';
         this._Domain = null;
     }
@@ -103,10 +110,14 @@ class VueModel extends CommonFunc {
         this.AddVdom_Text(this.Dom.WithCustom(QueryString), StoreKey);
         return this;
     }
+    AddVcol_Text(ColName, StoreKey = null) {
+        this.AddVdom_Text(this.Dom.WithAttr('vc-col', ColName), StoreKey ?? ColName);
+        return this;
+    }
     AddVdom_Text(Dom, ...StoreKey) {
+        let GetDom = this._BaseCheck_DomEditor(Dom);
         StoreKey = this._ReCombineStoreKey(StoreKey);
         this.AddStore(StoreKey, null);
-        let GetDom = this._BaseCheck_DomEditor(Dom);
         GetDom.SetAttr('v-text', StoreKey);
         return this;
     }
@@ -122,9 +133,8 @@ class VueModel extends CommonFunc {
         return this;
     }
     AddVdom_Input(Dom, ...StoreKey) {
-        StoreKey = this._ReCombineStoreKey(StoreKey);
         let GetDom = this._BaseCheck_DomEditor(Dom);
-
+        StoreKey = this._ReCombineStoreKey(StoreKey);
         this.AddStore(StoreKey, null);
         GetDom.ForEach(Item => {
             let VModelCommand = 'v-model';
@@ -230,6 +240,32 @@ class VueModel extends CommonFunc {
     }
     //#endregion
 
+    //#region Input-File
+    AddV_File(DomId, FileStoreKey = null) {
+        this.AddVdom_File(this.Dom.WithId(DomId), FileStoreKey ?? DomId);
+        return this;
+    }
+    AddVq_File(QueryString, FileStoreKey = null) {
+        this.AddVdom_File(this.Dom.WithCustom(QueryString), FileStoreKey);
+        return this;
+    }
+    AddVcol_File(ColName, FileStoreKey = null) {
+        this.AddVdom_File(this.Dom.WithAttr('vc-col', ColName), FileStoreKey ?? ColName);
+        return this;
+    }
+    AddVdom_File(Dom, FileStoreKey) {
+        this.AddFileStore(FileStoreKey);
+
+        this.AddVdom_OnChange(Dom, (Input) => {
+            let Files = Input.target.files;
+            this.FileStore[FileStoreKey] = [];
+            this.FileStore[FileStoreKey].push(...Files);
+        });
+        return this;
+    }
+
+    //#endregion
+
     //#region Add Function Format
     AddV_Function(FuncKey, Func) {
         this.VueOption.methods[FuncKey] = Func;
@@ -266,17 +302,35 @@ class VueModel extends CommonFunc {
     //#endregion
 
     //#region On Event
-    AddV_On() {
-
+    AddV_OnChange(DomId, ChangeFunc, FuncParam = null) {
+        this.AddVdom_OnChange(this.Dom.WithId(DomId), ChangeFunc, FuncParam);
+        return this;
     }
-    AddVc_On() {
-
+    AddVq_OnChange(QueryString, ChangeFunc, FuncParam = null) {
+        this.AddVdom_OnChange(this.Dom.WithCustom(QueryString), ChangeFunc, FuncParam);
+        return this;
     }
-    AddVq_On() {
 
+    AddVcol_OnChange(ColName, ChangeFunc, FuncParam = null) {
+        this.AddVdom_OnChange(this.Dom.WithAttr('vc-col', ColName), ChangeFunc, FuncParam);
+        return this;
     }
-    AddVdom_On() {
 
+    AddVdom_OnChange(Dom, ChangeFunc, FuncParam = null) {
+        if (ChangeFunc == null)
+            this._Throw('Change function cannot be null');
+
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+
+        let FuncName = this._GetRandomFuncName('OnChange')
+        this.AddV_Function(FuncName, ChangeFunc);
+
+        let SetFuncKey = FuncName;
+        if (FuncParam != null)
+            SetFuncKey = `${SetFuncKey}(${FuncParam})`;
+
+        GetDom.SetAttr(`v-on:change`, SetFuncKey);
+        return this;
     }
     //#endregion
 
@@ -314,13 +368,12 @@ class VueModel extends CommonFunc {
             this._Throw('Click function cannot be null');
         let GetDom = this._BaseCheck_DomEditor(Dom);
 
-        let RandomFuncName = this._GenerateId().replaceAll('-', '');
-        let FuncName = `Func_${RandomFuncName}`;
-
+        let FuncName = this._GetRandomFuncName('Func')
         this.AddV_Function(FuncName, ClickFunc);
 
-        FuncParam ??= '';
-        let SetFuncKey = `${FuncName}(${FuncParam})`;
+        let SetFuncKey = FuncName;
+        if (FuncParam != null)
+            SetFuncKey = `${SetFuncKey}(${FuncParam})`;
 
         GetDom.SetAttr(`v-on:click`, SetFuncKey);
         return this;
@@ -341,7 +394,7 @@ class VueModel extends CommonFunc {
         let GetDom = this._BaseCheck_DomEditor(Dom);
         GetDom.ForEach(Item => {
             let TagName = Item.tagName.toLowerCase();
-            if (!this.AcceptAutoBindType_Text.includes(TagName))
+            if (!this.AcceptAutoBindTag_Text.includes(TagName))
                 return;
 
             let SetStoreKey = this._Analyze_AutoBind_From(Item, BindFrom);
@@ -363,8 +416,12 @@ class VueModel extends CommonFunc {
         StoreKey = StoreKey ?? this.DefaultStoreKey;
         let GetDom = this._BaseCheck_DomEditor(Dom);
         GetDom.ForEach(Item => {
-            let TagName = Item.tagName.toLowerCase();
-            if (!this.AcceptAutoBindType_Input.includes(TagName))
+            let TagName = Item['tagName'].toLowerCase();
+            if (!this.AcceptAutoBindTag_Input.includes(TagName))
+                return;
+
+            let Type = Item['type'].toLowerCase();
+            if (this.ExceptAutoBindType_Input.includes(Type))
                 return;
 
             let SetStoreKey = this._Analyze_AutoBind_From(Item, BindFrom);
@@ -386,13 +443,36 @@ class VueModel extends CommonFunc {
         let GetDom = this._BaseCheck_DomEditor(Dom);
         GetDom.ForEach(Item => {
             let TagName = Item.tagName.toLowerCase();
-            if (!this.AcceptAutoBindType_Select.includes(TagName))
+            if (!this.AcceptAutoBindTag_Select.includes(TagName))
                 return;
 
             let SetStoreKey = this._Analyze_AutoBind_From(Item, BindFrom);
             if (this._IsClearSotreKey(SetStoreKey))
                 SetStoreKey = `${StoreKey}.${SetStoreKey}`;
             this.AddVdom_SelectHtml(GetDom.NewWithElement(Item), SetStoreKey);
+        });
+        return this;
+    }
+    //#endregion
+
+    //#region AutoBind File
+    AddVq_AutoBind_File(QueryString) {
+        this.AddVdom_AutoBind_File(this.Dom.WithCustom(QueryString));
+        return this;
+    }
+    AddVdom_AutoBind_File(Dom) {
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+        GetDom.ForEach(Item => {
+            let TagName = Item['tagName'].toLowerCase();
+            if (!this.AcceptAutoBindTag_File.includes(TagName))
+                return;
+
+            let Type = Item['type'].toLowerCase();
+            if (!this.AcceptAutoBindType_File.includes(Type))
+                return;
+
+            let ColName = GetDom.GetElement_Attr(Item, 'vc-col');
+            this.AddVdom_File(GetDom.NewWithElement(Item), ColName);
         });
         return this;
     }
@@ -450,6 +530,11 @@ class VueModel extends CommonFunc {
 
         this._RCS_SetStore(StoreKey, StoreData, this.Store, true);
         this._UpdateVueStore();
+        return this;
+    }
+    AddFileStore(FileStoreKey) {
+        if (this.FileStore[FileStoreKey] == null)
+            this.FileStore[FileStoreKey] = [];
         return this;
     }
 
@@ -523,34 +608,91 @@ class VueModel extends CommonFunc {
         return this;
     }
 
-    ApiCall(_ApiKey, _Param = null, _OnSuccess = null, _OnComplete = null, _OnError = null) {
+    ApiCall(_ApiKey, _Param = { Query: null, Body: null }, _OnSuccess = null, _OnComplete = null, _OnError = null) {
         let Api = this.ApiStore[_ApiKey];
-        let Url = Api.Url;
-        _Param ??= {};
-        let FetchParam = {
-            method: Api.Method,
-        };
-        if (Api.Method == 'GET') {
-            let UrlParam = this._ConvertToUrlParam(_Param);
-            Url += `?${UrlParam}`;
-        }
-        else {
-            FetchParam['body'] = JSON.stringify(_Param);
-            FetchParam['headers'] = {
-                'content-type': 'application/json'
-            };
-        }
-        Url = this._GetClearUrl(Url);
+
+        let Url = this._GetClearUrl(Api.Url);
         if (this.Domain != null && !Url.includes('http')) {
             Url = `${this.Domain}/${Url}`;
         }
+
+        let SendBody = null;
+        if (_Param?.Query != null) {
+            let UrlParam = this._ConvertTo_UrlParam(_Param);
+            Url += `?${UrlParam}`;
+        }
+
+        if (_Param?.Body != null) {
+            SendBody = _Param.Body;
+        }
+
+        let FetchParam = {
+            method: Api.Method,
+            body: JSON.stringify(SendBody ?? {}),
+            headers: {
+                'content-type': 'application/json'
+            },
+        };
 
         fetch(Url, FetchParam)
             .then(async ApiRet => {
                 if (!ApiRet.ok)
                     throw ApiRet;
 
-                let ConvertRet = await this._ProcessApiReturn(Api, ApiRet);
+                let ConvertRet = await this._ProcessApiReturn(ApiRet);
+                let StoreKey = Api['ApiKey'];
+                this.UpdateStore(ConvertRet, StoreKey, true);
+
+                Api.OnSuccess?.call(this, ConvertRet);
+                _OnSuccess?.call(this, ConvertRet);
+                return ConvertRet;
+            })
+            .catch(async ex => {
+                Api.OnError?.call(this, ex);
+                _OnError?.call(this, ex);
+            })
+            .then(async ConvertRet => {
+                _OnComplete?.call(this, ConvertRet);
+                Api.OnComplete?.call(this, ConvertRet);
+            });
+
+        return this;
+    }
+
+    ApiCall_Form(_ApiKey, _Param = { Query: null, Form: null, File: null }, _OnSuccess = null, _OnComplete = null, _OnError = null) {
+        let Api = this.ApiStore[_ApiKey];
+
+        let Url = this._GetClearUrl(Api.Url);
+        if (this.Domain != null && !Url.includes('http')) {
+            Url = `${this.Domain}/${Url}`;
+        }
+
+        let SendForm = null;
+        if (_Param?.Query != null) {
+            let UrlParam = this._ConvertTo_UrlParam(_Param);
+            Url += `?${UrlParam}`;
+        }
+
+        if (_Param?.Form != null) {
+            SendForm = this._ConvertTo_FormParam(_Param.Form, SendForm);
+        }
+
+        if (_Param?.File != null) {
+            SendForm = this._ConvertTo_FormFile(_Param.File, SendForm);
+        }
+
+        let FetchParam = {
+            method: 'POST',
+            body: SendForm,
+        };
+
+        fetch(Url, FetchParam)
+            .then(async ApiRet => {
+                if (!ApiRet.ok)
+                    throw ApiRet;
+
+                let ConvertRet = await this._ProcessApiReturn(ApiRet);
+
                 Api.OnSuccess?.call(this, ConvertRet);
                 _OnSuccess?.call(this, ConvertRet);
                 return ConvertRet;
@@ -580,26 +722,23 @@ class VueModel extends CommonFunc {
         this.AddStore(_ApiKey);
         return SetStore;
     }
-    _ProcessApiReturn(Api, ApiRet) {
-        let TryGetRet = null;
+    _ProcessApiReturn(ApiRet) {
         let GetContentType = ApiRet.headers.get("content-type");
         let ConvertSuccess = null;
         if (GetContentType && GetContentType.includes('application/json')) {
             ConvertSuccess = ApiRet.json()
-                .then((GetJson) => TryGetRet = GetJson);
+                .then(GetJson => GetJson);
         }
         else {
             ConvertSuccess = ApiRet.text()
-                .then((GetText) => TryGetRet = GetText);
+                .then(GetText => GetText);
         }
-        return ConvertSuccess
-            .then(() => {
-                let StoreKey = Api.ApiKey;
-                this.UpdateStore(TryGetRet, StoreKey, true);
-                return TryGetRet;
-            });
+        return ConvertSuccess;
     }
-    _ConvertToUrlParam(Param) {
+    _ConvertTo_UrlParam(Param) {
+        if (typeof Param === 'string')
+            return Param;
+
         let AllParam = [];
         this._ForEachKeyValue(Param, (Key, Value) => {
             AllParam.push(`${Key}=${Value}`);
@@ -608,6 +747,39 @@ class VueModel extends CommonFunc {
         let ParamString = AllParam.join('&');
         return ParamString;
     }
+    _ConvertTo_FormParam(FormParam, Form = null) {
+        Form ??= new FormData();
+        this._ForEachKeyValue(FormParam, (Key, Value) => {
+            Form.append(Key, Value);
+        });
+        return Form;
+    }
+    _ConvertTo_FormFile(FileParam, Form = null) {
+        Form ??= new FormData();
+
+        let DefaultKey = 'Files';
+        if (Array.isArray(FileParam)) {
+            FileParam.forEach(GetFile => {
+                Form.append(DefaultKey, GetFile);
+            });
+        }
+        else if (FileParam instanceof File) {
+            Form.append(DefaultKey, FileParam);
+        }
+        else {
+            this._ForEachKeyValue(FileParam, (Key, GetFile) => {
+                if (Array.isArray(GetFile)) {
+                    GetFile.forEach(File => {
+                        Form.append(Key, File);
+                    });
+                }
+                else
+                    Form.append(Key, GetFile);
+            });
+        }
+        return Form;
+    }
+
     //#endregion
 
     //#region Base Process
@@ -667,8 +839,17 @@ class VueModel extends CommonFunc {
         let ClearUrl = _Url.replace(/^\/+/, '');
         return ClearUrl;
     }
+    _GetRandomFuncName(FuncNameHead = '', FuncNameTail = '') {
+        let RandomFuncName = this._GenerateId().replaceAll('-', '');
+        if (!this._IsNullOrEmpty(FuncNameHead))
+            RandomFuncName = `${FuncNameHead}_${RandomFuncName}`;
+
+        if (!this._IsNullOrEmpty(FuncNameTail))
+            RandomFuncName = `${RandomFuncName}_${FuncNameTail}`;
+
+        return RandomFuncName;
+    }
     //#endregion
 }
 const Model = new VueModel()
-    .AddBase_Format_Date()
-    .WithDomain(Domain);
+    .AddBase_Format_Date();

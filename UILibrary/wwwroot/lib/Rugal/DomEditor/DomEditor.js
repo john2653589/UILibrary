@@ -85,6 +85,11 @@ class DomEditor {
         this._BaseWhere(`[${Param}]`);
         return this;
     }
+    WhereTagName(TagName) {
+        let Param = this._CheckAttr(AttrName, AttrValue);
+        this._BaseWhere(`[${Param}]`);
+        return this;
+    }
     WhereCustom(QueryString) {
         this._BaseWhere(QueryString);
         return this;
