@@ -1,7 +1,8 @@
 ﻿/**
- *  VueModel.js v2.0.4
+ *  VueModel.js v2.0.5 
  *  From Rugal Tu
  *  Based on Vue3, CommonFunc.js, DomEditor.js
+ *  Update 2023/05/19
  * */
 const { createApp } = Vue
 const Dom = new DomEditor();
@@ -618,7 +619,7 @@ class VueModel extends CommonFunc {
 
         let SendBody = null;
         if (_Param?.Query != null) {
-            let UrlParam = this._ConvertTo_UrlParam(_Param);
+            let UrlParam = this._ConvertTo_UrlParam(_Param.Query);
             Url += `?${UrlParam}`;
         }
 
@@ -628,11 +629,13 @@ class VueModel extends CommonFunc {
 
         let FetchParam = {
             method: Api.Method,
-            body: JSON.stringify(SendBody ?? {}),
             headers: {
                 'content-type': 'application/json'
             },
         };
+
+        if (Api.Method.toUpperCase() == 'POST')
+            FetchParam['body'] = JSON.stringify(SendBody ?? {})
 
         fetch(Url, FetchParam)
             .then(async ApiRet => {
@@ -650,6 +653,7 @@ class VueModel extends CommonFunc {
             .catch(async ex => {
                 Api.OnError?.call(this, ex);
                 _OnError?.call(this, ex);
+                this._Throw(ex.message)
             })
             .then(async ConvertRet => {
                 _OnComplete?.call(this, ConvertRet);
