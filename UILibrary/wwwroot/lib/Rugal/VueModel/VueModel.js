@@ -1,8 +1,8 @@
 ﻿/**
- *  VueModel.js v2.0.5 
+ *  VueModel.js v2.0.6
  *  From Rugal Tu
  *  Based on Vue3, CommonFunc.js, DomEditor.js
- *  Update 2023/05/19
+ *  Update 2023/05/22
  * */
 const { createApp } = Vue
 const Dom = new DomEditor();
@@ -242,29 +242,45 @@ class VueModel extends CommonFunc {
     //#endregion
 
     //#region Input-File
-    AddV_File(DomId, FileStoreKey = null) {
-        this.AddVdom_File(this.Dom.WithId(DomId), FileStoreKey ?? DomId);
+    AddV_File(DomId, FileStoreKey = null, Option = { IsAddMode: false, ConverFileFunc: null }) {
+        this.AddVdom_File(this.Dom.WithId(DomId), FileStoreKey ?? DomId, Option);
         return this;
     }
-    AddVq_File(QueryString, FileStoreKey = null) {
-        this.AddVdom_File(this.Dom.WithCustom(QueryString), FileStoreKey);
+    AddVq_File(QueryString, FileStoreKey = null, Option = { IsAddMode: false, ConverFileFunc: null }) {
+        this.AddVdom_File(this.Dom.WithCustom(QueryString), FileStoreKey, Option);
         return this;
     }
-    AddVcol_File(ColName, FileStoreKey = null) {
-        this.AddVdom_File(this.Dom.WithAttr('vc-col', ColName), FileStoreKey ?? ColName);
+    AddVcol_File(ColName, FileStoreKey = null, Option = { IsAddMode: false, ConverFileFunc: null }) {
+        this.AddVdom_File(this.Dom.WithAttr('vc-col', ColName), FileStoreKey ?? ColName, Option);
         return this;
     }
-    AddVdom_File(Dom, FileStoreKey) {
+    AddVdom_File(Dom, FileStoreKey, Option = { IsAddMode: false, ConverFileFunc: null }) {
         this.AddFileStore(FileStoreKey);
+        let { IsAddMode, ConverFileFunc } = Option;
 
-        this.AddVdom_OnChange(Dom, (Input) => {
-            let Files = Input.target.files;
-            this.FileStore[FileStoreKey] = [];
-            this.FileStore[FileStoreKey].push(...Files);
+        this.AddVdom_OnChange(Dom, Input => {
+            let Files = [...Input.target.files];
+            if (!IsAddMode)
+                this.FileStore[FileStoreKey] = [];
+            else
+                Input.target.value = '';
+
+            let AddFiles = Files.map(Item => {
+
+                let ConvertFile = {
+                    FileId: this._GenerateId(),
+                    File: Item,
+                };
+                if (ConverFileFunc != null)
+                    ConverFileFunc(Item, ConvertFile);
+
+                return ConvertFile;
+            });
+
+            this.FileStore[FileStoreKey].push(...AddFiles);
         });
         return this;
     }
-
     //#endregion
 
     //#region Add Function Format
@@ -538,6 +554,17 @@ class VueModel extends CommonFunc {
             this.FileStore[FileStoreKey] = [];
         return this;
     }
+    Files(FileStoreKey, MapFunc = null) {
+        let GetFiles = this.FileStore[FileStoreKey];
+        if (GetFiles == null)
+            return [];
+
+        let MapFiles = MapFunc != null ?
+            GetFiles.map(Item => MapFunc(Item)) :
+            GetFiles.map(Item => Item['File']);
+
+        return MapFiles;
+    }
 
     _RCS_GetStore(StoreKey, FindStore) {
         if (FindStore == null)
@@ -619,7 +646,7 @@ class VueModel extends CommonFunc {
 
         let SendBody = null;
         if (_Param?.Query != null) {
-            let UrlParam = this._ConvertTo_UrlParam(_Param.Query);
+            let UrlParam = this._ConvertTo_UrlQuery(_Param.Query);
             Url += `?${UrlParam}`;
         }
 
@@ -673,7 +700,7 @@ class VueModel extends CommonFunc {
 
         let SendForm = null;
         if (_Param?.Query != null) {
-            let UrlParam = this._ConvertTo_UrlParam(_Param);
+            let UrlParam = this._ConvertTo_UrlQuery(_Param.Query);
             Url += `?${UrlParam}`;
         }
 
@@ -739,7 +766,7 @@ class VueModel extends CommonFunc {
         }
         return ConvertSuccess;
     }
-    _ConvertTo_UrlParam(Param) {
+    _ConvertTo_UrlQuery(Param) {
         if (typeof Param === 'string')
             return Param;
 
@@ -748,8 +775,8 @@ class VueModel extends CommonFunc {
             AllParam.push(`${Key}=${Value}`);
         });
 
-        let ParamString = AllParam.join('&');
-        return ParamString;
+        let QueryString = AllParam.join('&');
+        return QueryString;
     }
     _ConvertTo_FormParam(FormParam, Form = null) {
         Form ??= new FormData();
@@ -783,7 +810,24 @@ class VueModel extends CommonFunc {
         }
         return Form;
     }
+    //#endregion
 
+    //#region Web Page Controller
+    NavigateTo(Url = [], UrlParam = null) {
+        if (!Array.isArray(Url))
+            Url = [Url];
+
+        let CombineUrl = Url
+            .map(Item => this._GetClearUrl(Item))
+            .join('/');
+
+        if (UrlParam != null) {
+            if (typeof (UrlParam) != 'string')
+                UrlParam = this._ConvertTo_UrlQuery(UrlParam);
+            CombineUrl += `?${UrlParam}`;
+        }
+        window.location.href = CombineUrl;
+    }
     //#endregion
 
     //#region Base Process

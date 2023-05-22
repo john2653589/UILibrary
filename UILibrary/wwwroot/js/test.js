@@ -50,17 +50,27 @@ Loaded(() => {
                     'm:text',
                     'm:input',
                 ],
-                File: 'm:file',
+                //File: 'm:file',
             },
             Bind: {
                 File: {
-                    AAA: 'm:file; to:ABCS',
+                    //AAA: 'm:file; to:ABCS',
                 },
             }
         })
         .Init();
 
     Model
+        .AddVcol_File('AAA', 'ASD', {
+            IsAddMode: true,
+            ConverFileFunc: (File, Store) => {
+                var reader = new FileReader();
+                reader.readAsDataURL(File);
+                reader.onload = () => {
+                    Store['Bsae64'] = reader.result;
+                };
+            },
+        })
         .AddVcol_Click('BtnTest', (Idx) => {
             Model.ApiCall_Form('TestUpload', {
                 Form: {
