@@ -1,6 +1,7 @@
 ﻿/**
- *  CommonFunc.js v1.0.2
+ *  CommonFunc.js v1.0.3
  *  From Rugal Tu
+ *  Update 2023/05/22
  * */
 class CommonFunc {
 
@@ -37,3 +38,8 @@ class CommonFunc {
     }
     _IsString(Data) { return typeof Data === 'string'; }
 }
+
+var DefaultData;
+function Init(_DefaultData) {
+    DefaultData = JSON.parse(_DefaultData);
+};
