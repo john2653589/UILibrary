@@ -1,8 +1,8 @@
 ﻿/**
- *  VueModel.js v2.0.6
+ *  VueModel.js v2.0.12
  *  From Rugal Tu
  *  Based on Vue3, CommonFunc.js, DomEditor.js
- *  Update 2023/05/22
+ *  Update 2023/06/29
  * */
 const { createApp } = Vue
 const Dom = new DomEditor();
@@ -11,9 +11,10 @@ class VueModel extends CommonFunc {
 
     constructor() {
         super();
-        this.Store = {};
-        this.ApiStore = {};
-        this.FileStore = {};
+        this.Store = {
+            FileStore: {},
+        };
+        this.ApiStore = {}
         this.VueOption = {
             methods: {},
         };
@@ -23,7 +24,7 @@ class VueModel extends CommonFunc {
         this.WithDefaultStore(this.DefaultStoreKey);
         this.VueProxy = null;
         this.IsInited = false;
-
+        this.GetToken = undefined;
         this.AcceptAutoBindTag_Input = ['input', 'textarea'];
         this.AcceptAutoBindTag_Text = ['div', 'label', 'span'];
         this.AcceptAutoBindTag_Select = ['select'];
@@ -35,6 +36,9 @@ class VueModel extends CommonFunc {
 
         this.FuncKey_FormatDate = 'Format_Date';
         this._Domain = null;
+        this._Token = null;
+
+        this._Func_ConvertTo_FormParam = [];
     }
 
     //#region Property
@@ -49,6 +53,10 @@ class VueModel extends CommonFunc {
     }
     set Domain(_Domain) {
         this._Domain = this._GetClearDomain(_Domain);
+    }
+
+    get FileStore() {
+        return this.Store.FileStore;
     }
     //#endregion
 
@@ -82,7 +90,7 @@ class VueModel extends CommonFunc {
         this.Store[this.DefaultStoreKey] ??= {};
         return this;
     }
-    WithSotreData(_StoreData) {
+    WithStoreData(_StoreData) {
         this.Store = _StoreData;
         return this;
     }
@@ -96,6 +104,26 @@ class VueModel extends CommonFunc {
     }
     WithDomain(_Domain) {
         this.Domain = _Domain;
+        return this;
+    }
+    WithToken(_Token) {
+        this._Token = _Token;
+        return this;
+    }
+    WithConvertTo_FormParam(ConvertToFunc = (FormParam, Form) => { }) {
+        this._Func_ConvertTo_FormParam.push(ConvertToFunc);
+        return this;
+    }
+    WithJsonFormParam(JsonKey = 'Result') {
+        this.WithConvertTo_FormParam((FormParam, Form) => {
+            let ConvertParam = {};
+            ConvertParam[JsonKey] = JSON.stringify(FormParam);
+            return ConvertParam;
+        });
+        return this;
+    }
+    Using(UseFunc = () => { }) {
+        UseFunc();
         return this;
     }
     //#endregion
@@ -177,6 +205,29 @@ class VueModel extends CommonFunc {
         });
         return this;
     }
+    AddVcol_Select(Option = {
+        SelectCol: null,
+        OptionCol: null,
+        From: null,
+        To: null,
+        Display: null,
+        Value: null,
+    }) {
+        Option.From = Option.From ?? Option.SelectCol;
+        Option.To = Option.To ?? Option.SelectCol;
+
+        let SelectQuery = this.Dom._QueryString_VcCol(Option.SelectCol);
+        let OptionQuery = this.Dom._QueryString_VcCol(Option.OptionCol);
+        this.AddVq_Select({
+            SelectQuery,
+            OptionQuery,
+            From: Option.From,
+            To: Option.To,
+            Display: Option.Display,
+            Value: Option.Value,
+        });
+        return this;
+    }
     AddVq_Select(Option = {
         SelectQuery: null,
         From: null,
@@ -185,7 +236,9 @@ class VueModel extends CommonFunc {
         Display: null,
         Value: null,
     }) {
+
         this.AddStore(Option.To, null);
+        this.UpdateStore([], Option.From, true);
         let SelectDom = this.Dom
             .WithCustom(Option.SelectQuery)
             .ForEach(Item => {
@@ -193,7 +246,7 @@ class VueModel extends CommonFunc {
                     let Display = this._ReCombineItemKey(Option.Display);
                     let Value = this._ReCombineItemKey(Option.Value);
 
-                    this.Dom.NewWithElement(Item.children)
+                    this.Dom.NewWithElement([...Item.children])
                         .WhereCustom(Option.OptionQuery)
                         .SetAttr('v-text', Display)
                         .SetAttr(':value', Value)
@@ -233,8 +286,17 @@ class VueModel extends CommonFunc {
         this.AddVdom_For(this.Dom.WithCustom(QueryString), StoreKey);
         return this;
     }
+    AddVcol_For(ColName, StoreKey) {
+        this.AddVdom_For(this.Dom.WithAttr('vc-col', ColName), StoreKey);
+        return this;
+    }
     AddVdom_For(Dom, StoreKey) {
-        this.AddStore(StoreKey, []);
+        let GetStore = this._RCS_GetStore(StoreKey, this.Store);
+        if (GetStore == null)
+            this.AddStore(StoreKey, []);
+        else if (!Array.isArray(GetStore))
+            this.UpdateStore([], StoreKey, true);
+
         let GetDom = this._BaseCheck_DomEditor(Dom);
         GetDom.SetAttr('v-for', `(Item, Idx) in ${StoreKey}`);
         return this;
@@ -278,7 +340,32 @@ class VueModel extends CommonFunc {
             });
 
             this.FileStore[FileStoreKey].push(...AddFiles);
+            this._UpdateVueStore();
         });
+        return this;
+    }
+    //#endregion
+
+    //#region If Render
+    AddVcol_If(ColName, IfValue) {
+        this.AddVdom_If(this.Dom.WithAttr('vc-col', ColName), IfValue);
+        return this;
+    }
+    AddVdom_If(Dom, IfValue) {
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+        GetDom.SetAttr('v-if', IfValue);
+        return this;
+    }
+    //#endregion
+
+    //#region Show Render
+    AddVcol_Show(ColName, ShowValue) {
+        this.AddVdom_Show(this.Dom.WithAttr('vc-col', ColName), ShowValue);
+        return this;
+    }
+    AddVdom_Show(Dom, ShowValue) {
+        let GetDom = this._BaseCheck_DomEditor(Dom);
+        GetDom.SetAttr('v-show', ShowValue);
         return this;
     }
     //#endregion
@@ -354,6 +441,10 @@ class VueModel extends CommonFunc {
     //#region Bind
     AddV_Bind(DomId, BindKey, BindValue) {
         this.AddVdom_Bind(this.Dom.WithId(DomId), BindKey, BindValue);
+        return this;
+    }
+    AddVcol_Bind(ColName, BindKey, BindValue) {
+        this.AddVdom_Bind(this.Dom.WithAttr('vc-col', ColName), BindKey, BindValue);
         return this;
     }
     AddVq_Bind(QueryString, BindKey, BindValue) {
@@ -638,18 +729,9 @@ class VueModel extends CommonFunc {
 
     ApiCall(_ApiKey, _Param = { Query: null, Body: null }, _OnSuccess = null, _OnComplete = null, _OnError = null) {
         let Api = this.ApiStore[_ApiKey];
-
-        let Url = this._GetClearUrl(Api.Url);
-        if (this.Domain != null && !Url.includes('http')) {
-            Url = `${this.Domain}/${Url}`;
-        }
+        let Url = this._ConvertTo_DomainUrl(Api.Url, _Param?.Query);
 
         let SendBody = null;
-        if (_Param?.Query != null) {
-            let UrlParam = this._ConvertTo_UrlQuery(_Param.Query);
-            Url += `?${UrlParam}`;
-        }
-
         if (_Param?.Body != null) {
             SendBody = _Param.Body;
         }
@@ -657,7 +739,8 @@ class VueModel extends CommonFunc {
         let FetchParam = {
             method: Api.Method,
             headers: {
-                'content-type': 'application/json'
+                'content-type': 'application/json',
+                'Authorization': this._Token,
             },
         };
 
@@ -693,17 +776,9 @@ class VueModel extends CommonFunc {
     ApiCall_Form(_ApiKey, _Param = { Query: null, Form: null, File: null }, _OnSuccess = null, _OnComplete = null, _OnError = null) {
         let Api = this.ApiStore[_ApiKey];
 
-        let Url = this._GetClearUrl(Api.Url);
-        if (this.Domain != null && !Url.includes('http')) {
-            Url = `${this.Domain}/${Url}`;
-        }
+        let Url = this._ConvertTo_DomainUrl(Api.Url, _Param?.Query);
 
         let SendForm = null;
-        if (_Param?.Query != null) {
-            let UrlParam = this._ConvertTo_UrlQuery(_Param.Query);
-            Url += `?${UrlParam}`;
-        }
-
         if (_Param?.Form != null) {
             SendForm = this._ConvertTo_FormParam(_Param.Form, SendForm);
         }
@@ -715,6 +790,9 @@ class VueModel extends CommonFunc {
         let FetchParam = {
             method: 'POST',
             body: SendForm,
+            headers: {
+                'Authorization': this._Token,
+            },
         };
 
         fetch(Url, FetchParam)
@@ -766,6 +844,16 @@ class VueModel extends CommonFunc {
         }
         return ConvertSuccess;
     }
+    _ConvertTo_DomainUrl(Url, Param = null) {
+        let DomainUrl = this._GetClearUrl(Url);
+        if (this.Domain != null && !DomainUrl.includes('http')) {
+            DomainUrl = `${this.Domain}/${DomainUrl}`;
+        }
+        if (Param != null)
+            DomainUrl = `${DomainUrl}?${this._ConvertTo_UrlQuery(Param)}`;
+
+        return DomainUrl;
+    }
     _ConvertTo_UrlQuery(Param) {
         if (typeof Param === 'string')
             return Param;
@@ -779,7 +867,16 @@ class VueModel extends CommonFunc {
         return QueryString;
     }
     _ConvertTo_FormParam(FormParam, Form = null) {
+
         Form ??= new FormData();
+
+        this._Func_ConvertTo_FormParam.forEach(Func => {
+            FormParam = Func(FormParam, Form);
+        });
+
+        if (FormParam instanceof FormData)
+            return FormParam;
+
         this._ForEachKeyValue(FormParam, (Key, Value) => {
             Form.append(Key, Value);
         });
