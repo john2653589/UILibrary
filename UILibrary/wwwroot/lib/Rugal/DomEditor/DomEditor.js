@@ -1,6 +1,7 @@
 ﻿/**
- *  DomEditor.js v1.0.1
+ *  DomEditor.js v1.0.3
  *  From Rugal Tu
+ *  Update 2023/06/13
  * */
 
 class DomEditor {
@@ -124,6 +125,10 @@ class DomEditor {
     //#region Check Query
     _QueryString_Id(DomId) {
         return this._QueryString_Attr('id', DomId);
+    }
+
+    _QueryString_VcCol (DomVcCol) {
+        return this._QueryString_Attr('vc-col', DomVcCol);
     }
     _QueryString_Attr(AttrName, AttrValue = null) {
         let WhereQuery = `[${AttrName}]`;
