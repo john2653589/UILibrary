@@ -1,7 +1,7 @@
 ﻿/**
- *  DomEditor.js v1.0.3
+ *  DomEditor.js v1.0.4
  *  From Rugal Tu
- *  Update 2023/06/13
+ *  Update 2023/06/21
  * */
 
 class DomEditor {
@@ -127,7 +127,7 @@ class DomEditor {
         return this._QueryString_Attr('id', DomId);
     }
 
-    _QueryString_VcCol (DomVcCol) {
+    _QueryString_VcCol(DomVcCol) {
         return this._QueryString_Attr('vc-col', DomVcCol);
     }
     _QueryString_Attr(AttrName, AttrValue = null) {
@@ -145,6 +145,13 @@ class DomEditor {
         if (AttrValue != null)
             Param = `${AttrName}="${AttrValue}"`;
         return Param;
+    }
+    //#endregion
+
+    //#region Linq for Doms
+    First() {
+        this._NeedQuery();
+        return this.Doms[0];
     }
     //#endregion
 
