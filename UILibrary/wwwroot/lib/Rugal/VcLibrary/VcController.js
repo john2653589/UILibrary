@@ -1,7 +1,8 @@
 ﻿/**
- *  VcController.js v1.0.4
+ *  VcController.js v1.0.5
  *  From Rugal Tu
  *  Based on VueModel.js
+ *  Update 2023/06/25
  * */
 
 class VcController extends CommonFunc {
@@ -11,7 +12,7 @@ class VcController extends CommonFunc {
 
         this.Configs = {};
         this.IsConfigDone = false;
-        this.CommandNameProp = ['mode', 'column', 'from', 'to', 'select', 'option', 'display', 'value'];
+        this.CommandNameProp = ['mode', 'column', 'from', 'to', 'select', 'option', 'display', 'value', 'bind', 'key'];
         this.DefaultVcName = 'Default';
         this.IsUseQueryWhere_VcName = false;
 
@@ -134,6 +135,10 @@ class VcController extends CommonFunc {
         let From = ColumnSet['from'];
         let Mode = ColumnSet['mode'];
         let To = ColumnSet['to'];
+
+        let Value = ColumnSet['value'];
+
+
         let SetStoreKey = From;
 
         let SkipChar = ['.', '(', ')'];
@@ -152,7 +157,6 @@ class VcController extends CommonFunc {
             case 'select':
                 let Option = ColumnSet['option'];
                 let Display = ColumnSet['display'];
-                let Value = ColumnSet['value'];
                 let SelectQuery = Dom._QueryString_Attr('vc-col', Column);
                 let OptionQuery = Dom._QueryString_Attr('vc-col', Option);
 
@@ -170,6 +174,10 @@ class VcController extends CommonFunc {
                 break;
             case 'file':
                 this.Model.AddVdom_File(GetDoms, To ?? Column);
+                break;
+            case 'bind':
+                let Key = ColumnSet['key'];
+                this.Model.AddVdom_Bind(GetDoms, Key, Value);
                 break;
         }
     }
@@ -208,7 +216,6 @@ class VcController extends CommonFunc {
                 Doms.WhereAttr('type', 'file');
                 this.Model.AddVdom_AutoBind_File(Doms);
                 break;
-
         }
         return;
     }
@@ -346,8 +353,8 @@ class VcController extends CommonFunc {
                     StoreBind[GetColumn] = SetBind;
                 }
                 else {
-                    if (Array.isArray(StoreBind))
-                        StoreBind.push(SetBind);
+                    if (Array.isArray(StoreBind[GetColumn]))
+                        StoreBind[GetColumn].push(SetBind);
                     else {
                         let OrgBind = StoreBind[GetColumn];
                         StoreBind[GetColumn] = [OrgBind, SetBind];
@@ -427,11 +434,23 @@ class VcController extends CommonFunc {
         if ('option' in CommandInfo && CommandInfo['mode'] != 'select')
             throw new Error('if set「option」command,「mode」must be set「select」');
 
-        if ('value' in CommandInfo && 'option' in CommandInfo === false)
-            throw new Error('if set「value」command,「option」command is required');
+        if (CommandInfo['mode'] == 'select') {
+            if ('display' in CommandInfo && 'option' in CommandInfo === false)
+                throw new Error('if set「display」command for「select」mode,「option」command is required');
 
-        if ('display' in CommandInfo && 'option' in CommandInfo === false)
-            throw new Error('if set「display」command,「option」command is required');
+            if ('value' in CommandInfo && 'option' in CommandInfo === false)
+                throw new Error('if set「value」command for「select」mode,「option」command is required');
+        }
+
+        if (CommandInfo['mode'] == 'bind') {
+            if ('value' in CommandInfo === false)
+                throw new Error('「value」command is required for「bind」mode');
+
+            if ('key' in CommandInfo === false)
+                throw new Error('「key」command is required for「bind」mode');
+        }
+
+
 
         return CommandInfo;
     }
@@ -442,6 +461,7 @@ class VcController extends CommonFunc {
             case 'select':
             case 'for':
             case 'file':
+            case 'bind':
                 break;
 
             default:
@@ -494,6 +514,11 @@ class VcController extends CommonFunc {
             case 'col':
                 CommandName = 'column';
                 break;
+
+            case 'value':
+            case 'val':
+                CommandName = 'value';
+                break;
             //#endregion
 
             //#region Select
@@ -511,14 +536,15 @@ class VcController extends CommonFunc {
                 CommandName = 'to';
                 break;
 
-            case 'value':
-            case 'val':
-                CommandName = 'value';
-                break;
-
             case 'display':
             case 'dis':
                 CommandName = 'display';
+                break;
+            //#endregion
+
+            //#region bind
+            case 'key':
+                CommandName = 'key';
                 break;
             //#endregion
 
